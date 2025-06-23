@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>File Uploader</title>
+</head>
+<body>
+  <h1>Upload files</h1>
+  <form action="/upload" method="post" enctype="multipart/form-data">
+    Folder name: <input type="text" name="folder" required>
+    <br>
+    Select files: <input type="file" name="files" multiple required>
+    <br>
+    <button type="submit">Upload</button>
+  </form>
+</body>
+</html>

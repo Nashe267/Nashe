@@ -1,0 +1,19 @@
+{
+  "name": "nashe",
+  "version": "1.0.0",
+  "description": "Danger",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "express": "^5.1.0",
+    "multer": "^2.0.1"
+  }
+}
