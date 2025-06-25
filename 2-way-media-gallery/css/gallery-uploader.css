@@ -1,0 +1,14 @@
+.twmg-tabs{max-width:900px;margin:auto;font-family:sans-serif}
+.twmg-tab-nav{list-style:none;padding:0;display:flex;border-bottom:2px solid #ccc}
+.twmg-tab-nav li{padding:10px 20px;cursor:pointer}
+.twmg-tab-nav li.active{border-bottom:3px solid #000;font-weight:bold}
+.twmg-tab-content{display:none;padding:20px}
+.twmg-tab-content.active{display:block}
+.twmg-dropzone{border:2px dashed #ccc;padding:40px;text-align:center;margin-bottom:20px}
+.twmg-gallery-grid{display:grid;grid-template-columns:1fr 1fr;grid-gap:10px}
+.twmg-gallery-item{position:relative}
+.twmg-like{position:absolute;left:5px;top:5px;background:#fff;padding:2px 5px;border-radius:3px;cursor:pointer}
+.twmg-download{position:absolute;right:5px;top:5px;background:#000;color:#fff;padding:2px 5px;border-radius:3px;text-decoration:none}
+.twmg-banner{text-align:center;margin-bottom:20px}
+.twmg-download-all{display:block;width:100%;max-width:300px;margin:20px auto;padding:10px;background:#000;color:#fff;text-align:center;text-decoration:none;font-weight:bold}
+@media(max-width:600px){.twmg-gallery-grid{grid-template-columns:1fr}}
