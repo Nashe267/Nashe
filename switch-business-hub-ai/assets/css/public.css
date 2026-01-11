@@ -1,0 +1,791 @@
+/**
+ * Switch Business Hub AI - Public Styles
+ */
+
+:root {
+    --sbha-primary: #FF6600;
+    --sbha-secondary: #000000;
+    --sbha-white: #FFFFFF;
+    --sbha-gray-100: #f8f9fa;
+    --sbha-gray-200: #e9ecef;
+    --sbha-gray-300: #dee2e6;
+    --sbha-gray-500: #6c757d;
+    --sbha-gray-700: #495057;
+    --sbha-gray-900: #212529;
+    --sbha-success: #28a745;
+    --sbha-warning: #ffc107;
+    --sbha-danger: #dc3545;
+    --sbha-border-radius: 10px;
+    --sbha-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    --sbha-shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+/* Hub Container */
+.sbha-hub {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    color: var(--sbha-gray-900);
+    line-height: 1.6;
+}
+
+/* Welcome Section */
+.sbha-welcome-section {
+    background: linear-gradient(135deg, var(--sbha-secondary), #333);
+    color: var(--sbha-white);
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.sbha-welcome-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.sbha-welcome-section h1 {
+    font-size: 2.5rem;
+    margin: 0 0 10px;
+    color: var(--sbha-white);
+}
+
+.sbha-welcome-tagline {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin-bottom: 30px;
+}
+
+/* Smart Search */
+.sbha-smart-search {
+    display: flex;
+    gap: 10px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.sbha-smart-search input {
+    flex: 1;
+    padding: 15px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: var(--sbha-border-radius);
+    outline: none;
+}
+
+.sbha-smart-search input:focus {
+    box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.3);
+}
+
+/* Buttons */
+.sbha-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 25px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--sbha-border-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.sbha-btn-primary {
+    background: var(--sbha-primary);
+    color: var(--sbha-white);
+}
+
+.sbha-btn-primary:hover {
+    background: #e55a00;
+    transform: translateY(-2px);
+    box-shadow: var(--sbha-shadow);
+}
+
+.sbha-btn-outline {
+    background: transparent;
+    color: var(--sbha-primary);
+    border: 2px solid var(--sbha-primary);
+}
+
+.sbha-btn-outline:hover {
+    background: var(--sbha-primary);
+    color: var(--sbha-white);
+}
+
+.sbha-btn-large {
+    padding: 15px 35px;
+    font-size: 18px;
+}
+
+/* Search Results */
+.sbha-search-results {
+    margin-top: 30px;
+    text-align: left;
+}
+
+.sbha-search-message {
+    font-size: 16px;
+    margin-bottom: 20px;
+    color: var(--sbha-gray-200);
+}
+
+.sbha-search-services {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.sbha-search-service {
+    background: rgba(255,255,255,0.1);
+    padding: 15px;
+    border-radius: var(--sbha-border-radius);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.sbha-search-service:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-2px);
+}
+
+.sbha-search-service-info h4 {
+    margin: 0;
+    color: var(--sbha-white);
+}
+
+.sbha-search-service-info p {
+    margin: 5px 0 0;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.sbha-search-service-price {
+    margin-left: auto;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--sbha-primary);
+}
+
+/* Categories Section */
+.sbha-categories-section {
+    padding: 60px 20px;
+    background: var(--sbha-gray-100);
+}
+
+.sbha-categories-section h2 {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 2rem;
+}
+
+.sbha-categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.sbha-category-card {
+    background: var(--sbha-white);
+    padding: 30px 20px;
+    border-radius: var(--sbha-border-radius);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: var(--sbha-shadow);
+    text-decoration: none;
+    color: inherit;
+}
+
+.sbha-category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--sbha-shadow-lg);
+}
+
+.sbha-category-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 15px;
+    background: var(--sbha-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sbha-category-card h3 {
+    margin: 0 0 5px;
+    font-size: 1.1rem;
+}
+
+.sbha-category-count {
+    font-size: 14px;
+    color: var(--sbha-gray-500);
+}
+
+/* Featured Section */
+.sbha-featured-section,
+.sbha-services-section {
+    padding: 60px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.sbha-featured-section h2,
+.sbha-services-section h2 {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 2rem;
+}
+
+.sbha-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.sbha-section-header h2 {
+    margin: 0;
+}
+
+/* Services Grid */
+.sbha-services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 25px;
+}
+
+.sbha-services-grid.sbha-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.sbha-services-grid.sbha-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.sbha-services-grid.sbha-cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 768px) {
+    .sbha-services-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Service Card */
+.sbha-service-card {
+    background: var(--sbha-white);
+    border-radius: var(--sbha-border-radius);
+    overflow: hidden;
+    box-shadow: var(--sbha-shadow);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.sbha-service-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--sbha-shadow-lg);
+}
+
+.sbha-service-card .sbha-badge {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 20px;
+    z-index: 1;
+}
+
+.sbha-badge.featured {
+    background: var(--sbha-primary);
+    color: var(--sbha-white);
+}
+
+.sbha-badge.popular {
+    background: var(--sbha-success);
+    color: var(--sbha-white);
+}
+
+.sbha-service-image {
+    height: 180px;
+    overflow: hidden;
+}
+
+.sbha-service-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.sbha-service-card:hover .sbha-service-image img {
+    transform: scale(1.05);
+}
+
+.sbha-service-content {
+    padding: 20px;
+}
+
+.sbha-service-title {
+    margin: 0 0 10px;
+    font-size: 1.2rem;
+}
+
+.sbha-service-description {
+    color: var(--sbha-gray-500);
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.sbha-service-price {
+    margin-bottom: 15px;
+}
+
+.sbha-price-from {
+    display: block;
+    font-size: 12px;
+    color: var(--sbha-gray-500);
+}
+
+.sbha-price-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--sbha-primary);
+}
+
+.sbha-price-per {
+    font-size: 14px;
+    color: var(--sbha-gray-500);
+}
+
+.sbha-service-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px;
+}
+
+.sbha-service-features li {
+    font-size: 14px;
+    padding: 5px 0 5px 20px;
+    position: relative;
+}
+
+.sbha-service-features li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--sbha-success);
+    font-weight: bold;
+}
+
+.sbha-service-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.sbha-service-actions .sbha-btn {
+    flex: 1;
+    padding: 10px 15px;
+    font-size: 14px;
+}
+
+/* Single Service */
+.sbha-single-service {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.sbha-service-header {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 40px;
+    margin-bottom: 40px;
+}
+
+@media (max-width: 768px) {
+    .sbha-service-header {
+        grid-template-columns: 1fr;
+    }
+}
+
+.sbha-service-image-large img {
+    width: 100%;
+    border-radius: var(--sbha-border-radius);
+}
+
+.sbha-service-info h1 {
+    margin: 0 0 20px;
+}
+
+.sbha-service-price-large {
+    margin-bottom: 20px;
+}
+
+.sbha-service-price-large .sbha-price-value {
+    font-size: 2.5rem;
+}
+
+.sbha-features-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 25px;
+}
+
+.sbha-features-list li {
+    padding: 10px 0 10px 30px;
+    position: relative;
+    border-bottom: 1px solid var(--sbha-gray-200);
+}
+
+.sbha-features-list li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--sbha-success);
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* Packages Grid */
+.sbha-packages-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+.sbha-package-card {
+    background: var(--sbha-white);
+    border: 2px solid var(--sbha-gray-200);
+    border-radius: var(--sbha-border-radius);
+    padding: 30px;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.sbha-package-card.popular {
+    border-color: var(--sbha-primary);
+    transform: scale(1.05);
+}
+
+.sbha-package-card .sbha-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.sbha-package-card h3 {
+    margin: 0 0 15px;
+}
+
+.sbha-package-price {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--sbha-primary);
+    margin-bottom: 15px;
+}
+
+.sbha-package-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px;
+    text-align: left;
+}
+
+.sbha-package-card li {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--sbha-gray-200);
+}
+
+/* Related Services */
+.sbha-related-services {
+    margin-top: 60px;
+}
+
+.sbha-related-services h2 {
+    margin-bottom: 30px;
+}
+
+/* Modal */
+.sbha-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 99999;
+    overflow-y: auto;
+    padding: 40px 20px;
+}
+
+.sbha-modal.active {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.sbha-modal-content {
+    background: var(--sbha-white);
+    border-radius: var(--sbha-border-radius);
+    max-width: 600px;
+    width: 100%;
+    position: relative;
+    margin: auto;
+}
+
+.sbha-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 35px;
+    height: 35px;
+    border: none;
+    background: var(--sbha-gray-200);
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+.sbha-modal-close:hover {
+    background: var(--sbha-gray-300);
+}
+
+#sbha-modal-body {
+    padding: 30px;
+}
+
+/* Quote Form */
+.sbha-quote-form-container {
+    padding: 30px;
+}
+
+.sbha-quote-form-container h2 {
+    margin: 0 0 25px;
+    text-align: center;
+}
+
+/* Form Styles */
+.sbha-form {
+    max-width: 100%;
+}
+
+.sbha-form-row {
+    margin-bottom: 20px;
+}
+
+.sbha-form-row label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.sbha-form-row input,
+.sbha-form-row select,
+.sbha-form-row textarea {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 16px;
+    border: 2px solid var(--sbha-gray-200);
+    border-radius: 8px;
+    transition: border-color 0.3s ease;
+}
+
+.sbha-form-row input:focus,
+.sbha-form-row select:focus,
+.sbha-form-row textarea:focus {
+    outline: none;
+    border-color: var(--sbha-primary);
+}
+
+.sbha-form-row-inline {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+@media (max-width: 500px) {
+    .sbha-form-row-inline {
+        grid-template-columns: 1fr;
+    }
+}
+
+.sbha-form-actions {
+    text-align: center;
+    margin-top: 25px;
+}
+
+.sbha-form-message {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.sbha-form-message.success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.sbha-form-message.error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Filters */
+.sbha-filters {
+    display: flex;
+    gap: 10px;
+}
+
+.sbha-filters .sbha-select {
+    padding: 10px 15px;
+    border: 2px solid var(--sbha-gray-200);
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+/* Job Tracker */
+.sbha-job-tracker {
+    max-width: 500px;
+    margin: 40px auto;
+    padding: 30px;
+    background: var(--sbha-white);
+    border-radius: var(--sbha-border-radius);
+    box-shadow: var(--sbha-shadow);
+}
+
+.sbha-job-tracker h2 {
+    margin: 0 0 25px;
+    text-align: center;
+}
+
+.sbha-track-result {
+    margin-top: 25px;
+}
+
+.sbha-track-info {
+    background: var(--sbha-gray-100);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.sbha-track-info h3 {
+    margin: 0 0 15px;
+    color: var(--sbha-primary);
+}
+
+.sbha-track-status {
+    display: inline-block;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.sbha-track-timeline {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sbha-track-timeline li {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--sbha-gray-200);
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Welcome Standalone */
+.sbha-welcome-standalone {
+    background: linear-gradient(135deg, var(--sbha-secondary), #333);
+    padding: 40px 20px;
+    text-align: center;
+    border-radius: var(--sbha-border-radius);
+}
+
+.sbha-welcome-standalone h2 {
+    color: var(--sbha-white);
+    margin: 0 0 25px;
+}
+
+/* Quote Form Standalone */
+.sbha-quote-form-standalone {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 40px;
+    background: var(--sbha-white);
+    border-radius: var(--sbha-border-radius);
+    box-shadow: var(--sbha-shadow);
+}
+
+.sbha-quote-form-standalone h2 {
+    margin: 0 0 30px;
+    text-align: center;
+}
+
+/* Loading State */
+.sbha-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.sbha-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--sbha-gray-200);
+    border-top-color: var(--sbha-primary);
+    border-radius: 50%;
+    animation: sbha-spin 1s linear infinite;
+}
+
+@keyframes sbha-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Animations */
+.sbha-fade-in {
+    animation: sbha-fadeIn 0.3s ease;
+}
+
+@keyframes sbha-fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sbha-welcome-section h1 {
+        font-size: 1.8rem;
+    }
+
+    .sbha-smart-search {
+        flex-direction: column;
+    }
+
+    .sbha-categories-section h2,
+    .sbha-featured-section h2,
+    .sbha-services-section h2 {
+        font-size: 1.5rem;
+    }
+
+    .sbha-section-header {
+        flex-direction: column;
+        gap: 15px;
+    }
+}
