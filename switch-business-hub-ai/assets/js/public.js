@@ -1,92 +1,66 @@
 /**
  * Switch Business Hub AI - Public JavaScript
- * Frontend functionality for customer interface
+ * Tabbed Interface functionality
  */
 
 (function($) {
     'use strict';
 
-    // Main Public Handler
     window.SBHAPublic = {
 
         init: function() {
             this.bindEvents();
-            this.initServiceCatalog();
-            this.initQuoteForm();
-            this.initRecommendations();
-            this.trackPageView();
+            this.initTabs();
         },
 
         bindEvents: function() {
-            // Service category filtering
-            $(document).on('click', '.sbha-category-filter', this.filterServices);
+            // Tab navigation
+            $(document).on('click', '.sbha-tab-btn', this.switchTab);
 
-            // Quote form submission
-            $(document).on('submit', '.sbha-quote-form', this.submitQuoteRequest);
+            // Category filter
+            $(document).on('click', '.sbha-filter-btn', this.filterServices);
 
-            // Service selection
-            $(document).on('click', '.sbha-service-card', this.selectService);
+            // Service actions
+            $(document).on('click', '.sbha-view-details', this.viewServiceDetails);
+            $(document).on('click', '.sbha-get-quote', this.getQuote);
 
-            // File upload handling
-            $(document).on('change', '.sbha-file-upload', this.handleFileUpload);
+            // Modal
+            $(document).on('click', '.sbha-modal-overlay, .sbha-modal-close', this.closeModal);
 
-            // Recommendation clicks
-            $(document).on('click', '.sbha-recommendation-item', this.handleRecommendationClick);
+            // Forms
+            $(document).on('submit', '#sbha-quote-form', this.submitQuoteForm);
+            $(document).on('submit', '#sbha-track-form', this.submitTrackForm);
+            $(document).on('submit', '#sbha-contact-form', this.submitContactForm);
         },
 
-        // Initialize service catalog
-        initServiceCatalog: function() {
-            var $catalog = $('.sbha-service-catalog');
-            if (!$catalog.length) return;
-
-            // Load services via AJAX
-            this.loadServices($catalog.data('category') || 'all');
+        // Initialize tabs
+        initTabs: function() {
+            // Check URL hash for initial tab
+            var hash = window.location.hash.replace('#', '');
+            if (hash && $('#sbha-tab-' + hash).length) {
+                this.activateTab(hash);
+            }
         },
 
-        // Load services from API
-        loadServices: function(category) {
-            var self = this;
-
-            $.ajax({
-                url: sbha_public.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'sbha_get_services',
-                    category: category,
-                    nonce: sbha_public.nonce
-                },
-                beforeSend: function() {
-                    $('.sbha-service-catalog').addClass('loading');
-                },
-                success: function(response) {
-                    if (response.success) {
-                        self.renderServices(response.data.services);
-                    }
-                },
-                complete: function() {
-                    $('.sbha-service-catalog').removeClass('loading');
-                }
-            });
+        // Switch tab
+        switchTab: function(e) {
+            e.preventDefault();
+            var tab = $(this).data('tab');
+            SBHAPublic.activateTab(tab);
         },
 
-        // Render services in catalog
-        renderServices: function(services) {
-            var $container = $('.sbha-services-grid');
-            $container.empty();
+        // Activate specific tab
+        activateTab: function(tab) {
+            // Update buttons
+            $('.sbha-tab-btn').removeClass('active');
+            $('.sbha-tab-btn[data-tab="' + tab + '"]').addClass('active');
 
-            services.forEach(function(service) {
-                var html = '<div class="sbha-service-card" data-service-id="' + service.id + '">' +
-                    '<div class="sbha-service-icon"><i class="' + service.icon + '"></i></div>' +
-                    '<h3 class="sbha-service-title">' + service.name + '</h3>' +
-                    '<p class="sbha-service-desc">' + service.short_description + '</p>' +
-                    '<div class="sbha-service-price">' +
-                        (service.price_from ? 'From ' + service.price_from : 'Get Quote') +
-                    '</div>' +
-                    '<button class="sbha-btn sbha-btn-primary">Learn More</button>' +
-                '</div>';
+            // Update panels
+            $('.sbha-tab-panel').removeClass('active');
+            $('#sbha-tab-' + tab).addClass('active');
 
-                $container.append(html);
-            });
+            // Update URL hash
+            history.replaceState(null, null, '#' + tab);
         },
 
         // Filter services by category
@@ -94,230 +68,199 @@
             e.preventDefault();
             var category = $(this).data('category');
 
-            $('.sbha-category-filter').removeClass('active');
+            // Update active button
+            $('.sbha-filter-btn').removeClass('active');
             $(this).addClass('active');
 
-            SBHAPublic.loadServices(category);
-        },
+            // Filter cards
+            var $cards = $('.sbha-service-card');
 
-        // Select a service
-        selectService: function(e) {
-            var $card = $(this);
-            var serviceId = $card.data('service-id');
-
-            // Track selection for AI
-            SBHAPublic.trackInteraction('service_view', {
-                service_id: serviceId
-            });
-
-            // Open service modal or redirect
-            SBHAPublic.openServiceModal(serviceId);
-        },
-
-        // Open service detail modal
-        openServiceModal: function(serviceId) {
-            $.ajax({
-                url: sbha_public.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'sbha_get_service_details',
-                    service_id: serviceId,
-                    nonce: sbha_public.nonce
-                },
-                success: function(response) {
-                    if (response.success) {
-                        SBHAPublic.showModal(response.data.html);
+            if (category === 'all') {
+                $cards.removeClass('hidden').fadeIn(300);
+            } else {
+                $cards.each(function() {
+                    var $card = $(this);
+                    if ($card.data('category') === category) {
+                        $card.removeClass('hidden').fadeIn(300);
+                    } else {
+                        $card.addClass('hidden').fadeOut(300);
                     }
-                }
-            });
+                });
+            }
         },
 
-        // Initialize quote form
-        initQuoteForm: function() {
-            var $form = $('.sbha-quote-form');
-            if (!$form.length) return;
+        // View service details
+        viewServiceDetails: function(e) {
+            e.preventDefault();
+            e.stopPropagation();
 
-            // Initialize form validation
-            this.initFormValidation($form);
+            var serviceId = $(this).data('id');
+            var $card = $(this).closest('.sbha-service-card');
+            var serviceName = $card.find('.sbha-service-title').text();
+            var serviceDesc = $card.find('.sbha-service-desc').text();
+            var servicePrice = $card.find('.sbha-price-amount').text();
 
-            // Load service options
-            this.loadServiceOptions();
+            var html = '<div class="sbha-service-detail">' +
+                '<h2>' + serviceName + '</h2>' +
+                '<div class="sbha-detail-price">' + servicePrice + '</div>' +
+                '<p>' + serviceDesc + '</p>' +
+                '<div class="sbha-detail-actions">' +
+                    '<button class="sbha-btn sbha-btn-primary sbha-get-quote" data-id="' + serviceId + '" data-name="' + serviceName + '">Request Quote</button>' +
+                '</div>' +
+            '</div>';
+
+            SBHAPublic.showModal(html);
         },
 
-        // Load service options for quote form
-        loadServiceOptions: function() {
-            $.ajax({
-                url: sbha_public.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'sbha_get_service_options',
-                    nonce: sbha_public.nonce
-                },
-                success: function(response) {
-                    if (response.success) {
-                        var $select = $('#sbha-service-select');
-                        response.data.services.forEach(function(service) {
-                            $select.append('<option value="' + service.id + '">' + service.name + '</option>');
-                        });
-                    }
-                }
-            });
+        // Get quote for service
+        getQuote: function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            var serviceId = $(this).data('id');
+            var serviceName = $(this).data('name');
+
+            // Close modal if open
+            SBHAPublic.closeModal();
+
+            // Switch to quote tab
+            SBHAPublic.activateTab('quote');
+
+            // Pre-select service
+            $('#sbha-service').val(serviceId);
+
+            // Scroll to form
+            $('html, body').animate({
+                scrollTop: $('.sbha-quote-container').offset().top - 50
+            }, 500);
         },
 
-        // Submit quote request
-        submitQuoteRequest: function(e) {
+        // Submit quote form
+        submitQuoteForm: function(e) {
             e.preventDefault();
 
             var $form = $(this);
+            var $btn = $form.find('.sbha-btn-primary');
+            var $message = $('#sbha-quote-message');
+
+            // Validate
+            if (!$form[0].checkValidity()) {
+                $form[0].reportValidity();
+                return;
+            }
+
+            $btn.find('.sbha-btn-text').hide();
+            $btn.find('.sbha-btn-loading').show();
+            $btn.prop('disabled', true);
+
             var formData = new FormData($form[0]);
-            formData.append('action', 'sbha_submit_quote_request');
-            formData.append('nonce', sbha_public.nonce);
+            formData.append('action', 'sbha_submit_quote');
 
             $.ajax({
-                url: sbha_public.ajax_url,
+                url: typeof sbha_public !== 'undefined' ? sbha_public.ajax_url : '/wp-admin/admin-ajax.php',
                 type: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
-                beforeSend: function() {
-                    $form.find('.sbha-submit-btn').prop('disabled', true).text('Submitting...');
-                },
                 success: function(response) {
                     if (response.success) {
-                        SBHAPublic.showNotification('success', response.data.message);
+                        $message.removeClass('error').addClass('success').text('Thank you! Your quote request has been submitted. We will contact you within 24 hours.').show();
                         $form[0].reset();
-
-                        // Track for AI
-                        SBHAPublic.trackInteraction('quote_request', {
-                            service_id: formData.get('service_id')
-                        });
                     } else {
-                        SBHAPublic.showNotification('error', response.data.message);
+                        $message.removeClass('success').addClass('error').text(response.data || 'An error occurred. Please try again.').show();
                     }
                 },
                 error: function() {
-                    SBHAPublic.showNotification('error', 'An error occurred. Please try again.');
+                    $message.removeClass('success').addClass('error').text('An error occurred. Please try again.').show();
                 },
                 complete: function() {
-                    $form.find('.sbha-submit-btn').prop('disabled', false).text('Submit Request');
+                    $btn.find('.sbha-btn-text').show();
+                    $btn.find('.sbha-btn-loading').hide();
+                    $btn.prop('disabled', false);
                 }
             });
         },
 
-        // Handle file uploads
-        handleFileUpload: function(e) {
-            var files = e.target.files;
-            var $preview = $(this).siblings('.sbha-file-preview');
+        // Submit track form
+        submitTrackForm: function(e) {
+            e.preventDefault();
 
-            $preview.empty();
+            var $form = $(this);
+            var jobNumber = $('#sbha-job-number').val().trim();
+            var $result = $('#sbha-track-result');
 
-            for (var i = 0; i < files.length; i++) {
-                var file = files[i];
-                var $item = $('<div class="sbha-file-item">' +
-                    '<span class="sbha-file-name">' + file.name + '</span>' +
-                    '<span class="sbha-file-size">' + SBHAPublic.formatFileSize(file.size) + '</span>' +
-                '</div>');
-                $preview.append($item);
+            if (!jobNumber) {
+                $result.html('<div class="sbha-message error">Please enter a job number.</div>');
+                return;
             }
-        },
 
-        // Initialize AI recommendations
-        initRecommendations: function() {
-            var $container = $('.sbha-recommendations');
-            if (!$container.length) return;
+            $result.html('<div class="sbha-loading">Searching...</div>');
 
-            this.loadRecommendations();
-        },
-
-        // Load personalized recommendations
-        loadRecommendations: function() {
             $.ajax({
-                url: sbha_public.ajax_url,
+                url: typeof sbha_public !== 'undefined' ? sbha_public.ajax_url : '/wp-admin/admin-ajax.php',
                 type: 'POST',
                 data: {
-                    action: 'sbha_get_recommendations',
-                    nonce: sbha_public.nonce,
-                    page_context: window.location.pathname
+                    action: 'sbha_track_job',
+                    job_number: jobNumber,
+                    nonce: $form.find('[name="sbha_track_nonce"]').val()
                 },
                 success: function(response) {
-                    if (response.success && response.data.recommendations.length > 0) {
-                        SBHAPublic.renderRecommendations(response.data.recommendations);
+                    if (response.success) {
+                        var job = response.data;
+                        var html = '<div class="sbha-job-status">' +
+                            '<div class="sbha-job-header">' +
+                                '<span class="sbha-job-number">' + job.job_number + '</span>' +
+                                '<span class="sbha-status-badge sbha-status-' + job.status + '">' + job.status_label + '</span>' +
+                            '</div>' +
+                            '<div class="sbha-job-info">' +
+                                '<p><strong>Service:</strong> ' + job.service_name + '</p>' +
+                                '<p><strong>Created:</strong> ' + job.created_date + '</p>' +
+                                (job.estimated_completion ? '<p><strong>Est. Completion:</strong> ' + job.estimated_completion + '</p>' : '') +
+                            '</div>' +
+                        '</div>';
+                        $result.html(html);
+                    } else {
+                        $result.html('<div class="sbha-message error">Job not found. Please check the job number and try again.</div>');
                     }
+                },
+                error: function() {
+                    $result.html('<div class="sbha-message error">An error occurred. Please try again.</div>');
                 }
             });
         },
 
-        // Render recommendations
-        renderRecommendations: function(recommendations) {
-            var $container = $('.sbha-recommendations-list');
-            $container.empty();
+        // Submit contact form
+        submitContactForm: function(e) {
+            e.preventDefault();
 
-            recommendations.forEach(function(rec) {
-                var html = '<div class="sbha-recommendation-item" data-service-id="' + rec.service_id + '">' +
-                    '<div class="sbha-rec-icon"><i class="' + rec.icon + '"></i></div>' +
-                    '<div class="sbha-rec-content">' +
-                        '<h4>' + rec.title + '</h4>' +
-                        '<p>' + rec.reason + '</p>' +
-                    '</div>' +
-                '</div>';
-                $container.append(html);
-            });
+            var $form = $(this);
+            var $btn = $form.find('.sbha-btn-primary');
+            var $message = $('#sbha-contact-message-result');
 
-            $('.sbha-recommendations').addClass('has-recommendations');
-        },
+            if (!$form[0].checkValidity()) {
+                $form[0].reportValidity();
+                return;
+            }
 
-        // Handle recommendation click
-        handleRecommendationClick: function() {
-            var serviceId = $(this).data('service-id');
-
-            SBHAPublic.trackInteraction('recommendation_click', {
-                service_id: serviceId
-            });
-
-            SBHAPublic.openServiceModal(serviceId);
-        },
-
-        // Track page view for AI learning
-        trackPageView: function() {
-            if (typeof sbha_public === 'undefined') return;
+            $btn.prop('disabled', true).text('Sending...');
 
             $.ajax({
-                url: sbha_public.ajax_url,
+                url: typeof sbha_public !== 'undefined' ? sbha_public.ajax_url : '/wp-admin/admin-ajax.php',
                 type: 'POST',
-                data: {
-                    action: 'sbha_track_page_view',
-                    nonce: sbha_public.nonce,
-                    page_url: window.location.href,
-                    page_title: document.title,
-                    referrer: document.referrer
-                }
-            });
-        },
-
-        // Track user interaction for AI
-        trackInteraction: function(type, data) {
-            if (typeof sbha_public === 'undefined') return;
-
-            data = data || {};
-            data.interaction_type = type;
-            data.action = 'sbha_track_interaction';
-            data.nonce = sbha_public.nonce;
-
-            $.ajax({
-                url: sbha_public.ajax_url,
-                type: 'POST',
-                data: data
-            });
-        },
-
-        // Initialize form validation
-        initFormValidation: function($form) {
-            $form.find('input[required], textarea[required]').on('blur', function() {
-                var $input = $(this);
-                if (!$input.val().trim()) {
-                    $input.addClass('error');
-                } else {
-                    $input.removeClass('error');
+                data: $form.serialize() + '&action=sbha_contact',
+                success: function(response) {
+                    if (response.success) {
+                        $message.removeClass('error').addClass('success').text('Thank you! Your message has been sent.').show();
+                        $form[0].reset();
+                    } else {
+                        $message.removeClass('success').addClass('error').text(response.data || 'An error occurred.').show();
+                    }
+                },
+                error: function() {
+                    $message.removeClass('success').addClass('error').text('An error occurred. Please try again.').show();
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).text('Send Message');
                 }
             });
         },
@@ -325,65 +268,15 @@
         // Show modal
         showModal: function(content) {
             var $modal = $('#sbha-modal');
-
-            if (!$modal.length) {
-                $modal = $('<div id="sbha-modal" class="sbha-modal">' +
-                    '<div class="sbha-modal-overlay"></div>' +
-                    '<div class="sbha-modal-container">' +
-                        '<button class="sbha-modal-close">&times;</button>' +
-                        '<div class="sbha-modal-content"></div>' +
-                    '</div>' +
-                '</div>');
-                $('body').append($modal);
-
-                $modal.on('click', '.sbha-modal-overlay, .sbha-modal-close', function() {
-                    SBHAPublic.closeModal();
-                });
-            }
-
-            $modal.find('.sbha-modal-content').html(content);
+            $modal.find('#sbha-modal-body').html(content);
             $modal.addClass('active');
-            $('body').addClass('sbha-modal-open');
+            $('body').css('overflow', 'hidden');
         },
 
         // Close modal
         closeModal: function() {
             $('#sbha-modal').removeClass('active');
-            $('body').removeClass('sbha-modal-open');
-        },
-
-        // Show notification
-        showNotification: function(type, message) {
-            var $notification = $('<div class="sbha-notification sbha-notification-' + type + '">' +
-                '<span class="sbha-notification-message">' + message + '</span>' +
-                '<button class="sbha-notification-close">&times;</button>' +
-            '</div>');
-
-            $('body').append($notification);
-
-            setTimeout(function() {
-                $notification.addClass('show');
-            }, 100);
-
-            setTimeout(function() {
-                $notification.removeClass('show');
-                setTimeout(function() {
-                    $notification.remove();
-                }, 300);
-            }, 5000);
-
-            $notification.on('click', '.sbha-notification-close', function() {
-                $notification.remove();
-            });
-        },
-
-        // Format file size
-        formatFileSize: function(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            var k = 1024;
-            var sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            var i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            $('body').css('overflow', '');
         }
     };
 
