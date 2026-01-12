@@ -1,709 +1,780 @@
 /**
- * Switch Business Hub AI - Complete Hub Styles
+ * Switch Business Hub AI - Premium App Styles
  * Single-page app with AI assistant & sticky navigation
  */
 
-/* Reset & Variables */
-.sbha-hub-app {
+/* CSS Variables */
+.sh-app {
     --primary: #FF6600;
-    --secondary: #333;
-    --bg: #f5f7fa;
-    --white: #fff;
-    --text: #333;
-    --text-light: #666;
-    --border: #e0e0e0;
-    --success: #28a745;
-    --error: #dc3545;
-    --shadow: 0 2px 15px rgba(0,0,0,0.1);
-    --radius: 12px;
+    --secondary: #1a1a2e;
+    --accent: #ff8533;
+    --bg: #f0f2f5;
+    --white: #ffffff;
+    --text: #1a1a2e;
+    --text-light: #6b7280;
+    --border: #e5e7eb;
+    --success: #10b981;
+    --error: #ef4444;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow: 0 4px 15px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 40px rgba(0,0,0,0.15);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --radius-full: 50px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg);
     min-height: 100vh;
-    padding-bottom: 80px;
+    padding-bottom: 90px;
     color: var(--text);
-    line-height: 1.5;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
 }
 
-.sbha-hub-app * {
+.sh-app * {
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-/* Header */
-.sbha-header {
-    background: var(--secondary);
+/* ==================== HEADER ==================== */
+.sh-header {
+    background: linear-gradient(135deg, var(--secondary), #16162d);
     color: var(--white);
-    padding: 15px 20px;
+    padding: 16px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     position: sticky;
     top: 0;
     z-index: 100;
+    box-shadow: var(--shadow);
 }
 
-.sbha-logo h1 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
+.sh-brand h1 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--white), var(--primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-.sbha-tagline {
-    font-size: 11px;
-    opacity: 0.8;
+.sh-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.sbha-header-actions .sbha-btn {
+.sh-user-menu {
+    position: relative;
+}
+
+.sh-user-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
     padding: 8px 16px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: var(--transition);
     font-size: 14px;
 }
 
-.sbha-user-btn {
-    background: rgba(255,255,255,0.1);
-    border: none;
-    color: white;
-    padding: 8px 15px;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
+.sh-user-btn:hover {
+    background: rgba(255,255,255,0.2);
 }
 
-/* AI Assistant Section */
-.sbha-ai-assistant {
-    background: linear-gradient(135deg, var(--primary), #ff8533);
-    padding: 25px 20px;
-    color: white;
-}
-
-.sbha-ai-container {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.sbha-ai-header {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.sbha-ai-avatar {
-    font-size: 50px;
-    background: white;
+.sh-avatar {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
     border-radius: 50%;
-    width: 70px;
-    height: 70px;
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.sbha-ai-intro h2 {
-    margin: 0 0 5px 0;
-    font-size: 22px;
-}
-
-.sbha-ai-intro p {
-    margin: 0;
-    opacity: 0.9;
+    font-weight: 700;
     font-size: 14px;
 }
 
-/* Chat Messages */
-.sbha-ai-chat {
-    background: rgba(255,255,255,0.1);
-    border-radius: var(--radius);
-    padding: 15px;
-    max-height: 300px;
-    overflow-y: auto;
-    margin-bottom: 15px;
+.sh-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--white);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    min-width: 180px;
+    display: none;
+    overflow: hidden;
+    z-index: 200;
 }
 
-.sbha-chat-message {
-    margin-bottom: 15px;
+.sh-dropdown.active {
+    display: block;
+    animation: slideDown 0.2s ease;
 }
 
-.sbha-chat-message:last-child {
-    margin-bottom: 0;
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.sbha-bot-message {
-    background: rgba(255,255,255,0.2);
-    padding: 15px;
-    border-radius: var(--radius);
+.sh-dropdown a {
+    display: block;
+    padding: 14px 18px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    transition: var(--transition);
 }
 
-.sbha-bot-message p {
-    margin: 0 0 15px 0;
-}
-
-.sbha-user-message {
-    background: var(--secondary);
-    padding: 12px 15px;
-    border-radius: var(--radius);
-    margin-left: 30px;
-}
-
-.sbha-quick-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.sbha-quick-btn {
-    background: white;
+.sh-dropdown a:hover {
+    background: var(--bg);
     color: var(--primary);
-    border: none;
-    padding: 8px 15px;
-    border-radius: 20px;
-    font-size: 13px;
+}
+
+.sh-notif-icon {
+    position: relative;
+    font-size: 22px;
     cursor: pointer;
-    transition: all 0.3s;
-    font-weight: 500;
+    padding: 8px;
 }
 
-.sbha-quick-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+.sh-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: var(--error);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
 }
 
-/* AI Input */
-.sbha-ai-input-area {
-    display: flex;
-    gap: 10px;
+/* ==================== AI SECTION ==================== */
+.sh-ai {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 50%, #ffaa66 100%);
+    padding: 30px 20px;
+    position: relative;
+    overflow: hidden;
 }
 
-.sbha-ai-input-area input {
-    flex: 1;
-    padding: 15px 20px;
-    border: none;
-    border-radius: 25px;
-    font-size: 16px;
-    outline: none;
+.sh-ai::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    pointer-events: none;
 }
 
-.sbha-ai-input-area input:focus {
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+.sh-ai-box {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
 }
 
-#sbha-ai-send {
-    padding: 15px 25px;
-    border-radius: 25px;
+.sh-ai-head {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 16px;
+    margin-bottom: 24px;
+    color: white;
 }
 
-/* Main Content */
-.sbha-main-content {
-    max-width: 1200px;
-    margin: 0 auto;
+.sh-ai-avatar {
+    width: 70px;
+    height: 70px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
 }
 
-/* Panels */
-.sbha-panels {
+.sh-ai-head h2 {
+    font-size: 26px;
+    font-weight: 800;
+    margin-bottom: 4px;
+}
+
+.sh-ai-head p {
+    opacity: 0.9;
+    font-size: 15px;
+}
+
+.sh-ai-chat {
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius);
     padding: 20px;
+    max-height: 320px;
+    overflow-y: auto;
+    margin-bottom: 16px;
 }
 
-.sbha-panel {
-    display: none;
-    animation: fadeIn 0.3s ease;
+.sh-msg {
+    margin-bottom: 16px;
+    animation: fadeInUp 0.3s ease;
 }
 
-.sbha-panel-active {
-    display: block;
-}
-
-@keyframes fadeIn {
+@keyframes fadeInUp {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Panel Header */
-.sbha-panel-header {
-    margin-bottom: 20px;
+.sh-msg:last-child {
+    margin-bottom: 0;
 }
 
-.sbha-panel-header h2 {
-    margin: 0 0 15px 0;
-    font-size: 24px;
-}
-
-/* Category Filters */
-.sbha-category-filters {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.sbha-cat-btn {
-    padding: 8px 16px;
-    border: 2px solid var(--border);
-    background: white;
-    border-radius: 20px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.sbha-cat-btn:hover,
-.sbha-cat-btn.active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: white;
-}
-
-/* Services Grid */
-.sbha-services-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-}
-
-/* Service Card */
-.sbha-service-card {
-    background: white;
+.sh-msg-bot {
+    background: rgba(255,255,255,0.25);
+    padding: 16px 20px;
     border-radius: var(--radius);
-    padding: 25px;
-    box-shadow: var(--shadow);
-    transition: transform 0.3s, box-shadow 0.3s;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-}
-
-.sbha-service-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-}
-
-.sbha-service-card.hidden {
-    display: none;
-}
-
-.sbha-badge {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: var(--primary);
     color: white;
-    padding: 4px 10px;
-    border-radius: 15px;
-    font-size: 11px;
-    font-weight: 600;
 }
 
-.sbha-service-icon {
-    font-size: 40px;
-    margin-bottom: 15px;
+.sh-msg-bot p {
+    margin-bottom: 16px;
+    font-size: 15px;
+    line-height: 1.5;
 }
 
-.sbha-service-card h3 {
-    margin: 0 0 10px 0;
-    font-size: 18px;
-}
-
-.sbha-service-desc {
-    color: var(--text-light);
+.sh-msg-user {
+    background: var(--secondary);
+    color: white;
+    padding: 14px 18px;
+    border-radius: var(--radius);
+    margin-left: 40px;
     font-size: 14px;
-    margin: 0 0 15px 0;
-    flex-grow: 1;
 }
 
-.sbha-service-price {
-    margin-bottom: 15px;
+.sh-quick-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
-.sbha-price-label {
-    font-size: 12px;
-    color: var(--text-light);
-}
-
-.sbha-price-amount {
-    font-size: 24px;
-    font-weight: 700;
+.sh-quick-btns button {
+    background: white;
     color: var(--primary);
-}
-
-.sbha-service-features {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 20px 0;
+    border: none;
+    padding: 10px 18px;
+    border-radius: var(--radius-full);
     font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
 }
 
-.sbha-service-features li {
-    padding: 4px 0;
-    color: var(--text-light);
+.sh-quick-btns button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
 
-.sbha-service-actions {
-    margin-top: auto;
+.sh-ai-input {
+    display: flex;
+    gap: 12px;
 }
 
-/* Buttons */
-.sbha-btn {
+.sh-ai-input input {
+    flex: 1;
+    padding: 16px 22px;
+    border: none;
+    border-radius: var(--radius-full);
+    font-size: 16px;
+    outline: none;
+    box-shadow: var(--shadow);
+}
+
+.sh-ai-input input:focus {
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.3);
+}
+
+.sh-ai-input .sh-btn {
+    border-radius: var(--radius-full);
+    padding: 16px 28px;
+}
+
+/* ==================== BUTTONS ==================== */
+.sh-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 12px 24px;
+    padding: 14px 24px;
     border: none;
-    border-radius: var(--radius);
+    border-radius: var(--radius-sm);
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: var(--transition);
     text-decoration: none;
+    white-space: nowrap;
 }
 
-.sbha-btn-primary {
-    background: var(--primary);
+.sh-btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
     color: white;
+    box-shadow: 0 4px 15px rgba(255, 102, 0, 0.35);
 }
 
-.sbha-btn-primary:hover {
-    background: #e55a00;
+.sh-btn-primary:hover {
     transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 102, 0, 0.45);
 }
 
-.sbha-btn-outline {
+.sh-btn-outline {
     background: transparent;
-    border: 2px solid currentColor;
+    border: 2px solid var(--white);
+    color: var(--white);
 }
 
-.sbha-btn-large {
-    padding: 16px 32px;
+.sh-btn-outline:hover {
+    background: var(--white);
+    color: var(--secondary);
+}
+
+.sh-btn-sm {
+    padding: 10px 18px;
+    font-size: 13px;
+}
+
+.sh-btn-lg {
+    padding: 18px 32px;
     font-size: 17px;
 }
 
-.sbha-btn-block {
+.sh-btn-block {
     width: 100%;
 }
 
-.sbha-order-btn {
-    width: 100%;
-}
-
-/* Forms */
-.sbha-form {
-    max-width: 700px;
+/* ==================== MAIN CONTENT ==================== */
+.sh-main {
+    max-width: 1200px;
     margin: 0 auto;
+    padding: 24px 20px;
 }
 
-.sbha-form-section {
-    background: white;
-    padding: 25px;
+.sh-panel {
+    display: none;
+    animation: fadeIn 0.4s ease;
+}
+
+.sh-panel.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.sh-section-head {
+    margin-bottom: 24px;
+}
+
+.sh-section-head h2 {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    color: var(--secondary);
+}
+
+/* ==================== FILTERS ==================== */
+.sh-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.sh-filter {
+    padding: 10px 20px;
+    border: 2px solid var(--border);
+    background: var(--white);
+    border-radius: var(--radius-full);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.sh-filter:hover,
+.sh-filter.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+/* ==================== SERVICE CARDS GRID ==================== */
+.sh-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+}
+
+.sh-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.sh-service {
+    position: relative;
+    overflow: hidden;
+}
+
+.sh-service:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+}
+
+.sh-service[data-cat].hidden {
+    display: none;
+}
+
+.sh-feat {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: white;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 700;
+    z-index: 10;
+    box-shadow: var(--shadow-sm);
+}
+
+.sh-img {
+    height: 180px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.sh-img span {
+    font-size: 60px;
+    opacity: 0.9;
+}
+
+.sh-body {
+    padding: 20px;
+}
+
+.sh-body h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--secondary);
+}
+
+.sh-body p {
+    color: var(--text-light);
+    font-size: 14px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.sh-price {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.sh-price span {
+    font-size: 12px;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sh-price strong {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+.sh-get-quote {
+    width: 100%;
+}
+
+/* ==================== FORMS ==================== */
+.sh-form {
+    max-width: 700px;
+}
+
+.sh-form-section {
+    background: var(--white);
+    padding: 28px;
     border-radius: var(--radius);
     margin-bottom: 20px;
     box-shadow: var(--shadow);
 }
 
-.sbha-form-section h3 {
-    margin: 0 0 20px 0;
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--border);
+.sh-form-section h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--bg);
+    color: var(--secondary);
 }
 
-.sbha-form-row {
+.sh-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: 16px;
 }
 
-.sbha-field {
-    margin-bottom: 20px;
+.sh-field {
+    margin-bottom: 18px;
 }
 
-.sbha-field label {
+.sh-field:last-child {
+    margin-bottom: 0;
+}
+
+.sh-field label {
     display: block;
     margin-bottom: 8px;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 14px;
+    color: var(--secondary);
 }
 
-.sbha-field input,
-.sbha-field select,
-.sbha-field textarea {
+.sh-field input,
+.sh-field select,
+.sh-field textarea {
     width: 100%;
-    padding: 14px 16px;
+    padding: 14px 18px;
     border: 2px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     font-size: 15px;
-    transition: border-color 0.3s;
+    transition: var(--transition);
+    background: var(--white);
 }
 
-.sbha-field input:focus,
-.sbha-field select:focus,
-.sbha-field textarea:focus {
+.sh-field input:focus,
+.sh-field select:focus,
+.sh-field textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(255, 102, 0, 0.1);
+}
+
+.sh-field textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.sh-custom-field {
+    display: none;
+}
+
+/* ==================== QUOTE PREVIEW ==================== */
+.sh-preview {
+    background: linear-gradient(135deg, var(--secondary), #252547);
+    padding: 24px;
+    border-radius: var(--radius);
+    margin: 24px 0;
+    color: white;
+}
+
+.sh-preview-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 15px;
+}
+
+.sh-preview-row:last-child {
+    border-bottom: none;
+}
+
+.sh-preview-total {
+    font-size: 20px;
+    font-weight: 700;
+    padding-top: 16px;
+    margin-top: 8px;
+    border-top: 2px solid rgba(255,255,255,0.2);
+}
+
+.sh-preview-total span:last-child {
+    color: var(--primary);
+}
+
+/* ==================== TRACK ORDER ==================== */
+.sh-track-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.sh-track-row input {
+    flex: 1;
+    padding: 16px 20px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+}
+
+.sh-track-row input:focus {
     outline: none;
     border-color: var(--primary);
 }
 
-.sbha-field small {
-    display: block;
-    margin-top: 5px;
-    font-size: 12px;
-    color: var(--text-light);
+.sh-my-orders {
+    margin-top: 32px;
 }
 
-/* Quote Preview */
-.sbha-quote-preview {
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    padding: 25px;
-    border-radius: var(--radius);
-    margin-bottom: 25px;
-}
-
-.sbha-quote-preview h3 {
-    margin: 0 0 15px 0;
-}
-
-.sbha-quote-summary {
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.sbha-quote-line {
-    display: flex;
-    justify-content: space-between;
-    padding: 12px 15px;
-    border-bottom: 1px solid var(--border);
-}
-
-.sbha-quote-line:last-child {
-    border-bottom: none;
-}
-
-.sbha-quote-total {
-    background: var(--primary);
-    color: white;
+.sh-my-orders h3 {
+    font-size: 20px;
     font-weight: 700;
-    font-size: 18px;
+    margin-bottom: 16px;
+    color: var(--secondary);
 }
 
-.sbha-quote-note {
-    margin: 15px 0 0 0;
-    font-size: 13px;
-    color: var(--text-light);
-    text-align: center;
-}
-
-.sbha-form-actions {
-    text-align: center;
-}
-
-/* Track Container */
-.sbha-track-container {
-    max-width: 600px;
-    margin: 0 auto;
-    text-align: center;
-}
-
-.sbha-track-container h2 {
-    margin-bottom: 10px;
-}
-
-.sbha-track-container > p {
-    color: var(--text-light);
-    margin-bottom: 30px;
-}
-
-.sbha-track-input-group {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 30px;
-}
-
-.sbha-track-input-group input {
-    flex: 1;
-    padding: 15px 20px;
-    border: 2px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 16px;
-}
-
-/* Order Card */
-.sbha-order-card {
-    background: white;
+/* Order Cards */
+.sh-order-card {
+    background: var(--white);
     border-radius: var(--radius);
     padding: 20px;
-    margin-bottom: 15px;
+    margin-bottom: 16px;
     box-shadow: var(--shadow);
-    text-align: left;
 }
 
-.sbha-order-header {
+.sh-order-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
 }
 
-.sbha-order-number {
-    font-weight: 700;
+.sh-order-number {
     font-size: 18px;
+    font-weight: 700;
+    color: var(--secondary);
 }
 
-.sbha-status-badge {
-    padding: 6px 12px;
-    border-radius: 20px;
+.sh-status {
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
     font-size: 12px;
     font-weight: 600;
 }
 
-.sbha-status-pending { background: #fff3cd; color: #856404; }
-.sbha-status-processing { background: #cce5ff; color: #004085; }
-.sbha-status-completed { background: #d4edda; color: #155724; }
-.sbha-status-delivered { background: #d1ecf1; color: #0c5460; }
+.sh-status-pending { background: #fef3c7; color: #92400e; }
+.sh-status-quoted { background: #dbeafe; color: #1e40af; }
+.sh-status-confirmed { background: #d1fae5; color: #065f46; }
+.sh-status-in_progress { background: #e0e7ff; color: #3730a3; }
+.sh-status-completed { background: #d1fae5; color: #065f46; }
+.sh-status-delivered { background: #cffafe; color: #0e7490; }
+.sh-status-cancelled { background: #fee2e2; color: #991b1b; }
 
-.sbha-order-response {
-    background: #e8f4fd;
-    padding: 15px;
-    border-radius: 8px;
-    margin-top: 15px;
+.sh-order-response {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    margin-top: 16px;
     border-left: 4px solid var(--primary);
 }
 
-.sbha-order-response h4 {
-    margin: 0 0 8px 0;
+.sh-order-response h4 {
     font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--primary);
 }
 
-/* Contact */
-.sbha-contact-container h2 {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-.sbha-contact-grid {
+/* ==================== CONTACT ==================== */
+.sh-contact {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 30px;
 }
 
-.sbha-contact-info {
+.sh-contact-info {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 16px;
 }
 
-.sbha-contact-card {
+.sh-contact-info h2 {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: var(--secondary);
+}
+
+.sh-contact-card {
     display: flex;
     align-items: center;
-    gap: 15px;
-    background: white;
-    padding: 20px;
+    gap: 16px;
+    background: var(--white);
+    padding: 20px 24px;
     border-radius: var(--radius);
     text-decoration: none;
     color: var(--text);
     box-shadow: var(--shadow);
-    transition: transform 0.3s;
+    transition: var(--transition);
 }
 
-.sbha-contact-card:hover {
-    transform: translateX(5px);
+.sh-contact-card:hover {
+    transform: translateX(8px);
+    box-shadow: var(--shadow-lg);
 }
 
-.sbha-contact-icon {
-    font-size: 30px;
+.sh-contact-card span:first-child {
+    font-size: 28px;
 }
 
-.sbha-contact-card span:nth-child(2) {
-    font-weight: 600;
-}
-
-.sbha-contact-value {
-    margin-left: auto;
-    color: var(--primary);
-}
-
-.sbha-whatsapp {
-    background: #25d366;
-    color: white;
-}
-
-.sbha-whatsapp .sbha-contact-value {
-    color: white;
-}
-
-.sbha-contact-form-wrap {
-    background: white;
-    padding: 25px;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-}
-
-.sbha-contact-form-wrap h3 {
-    margin: 0 0 20px 0;
-}
-
-/* Documents */
-.sbha-documents-container {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.sbha-doc-tabs {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.sbha-doc-tab {
+.sh-contact-card span:nth-child(2) {
+    font-weight: 700;
     flex: 1;
-    padding: 12px;
-    border: 2px solid var(--border);
-    background: white;
-    border-radius: var(--radius);
-    font-size: 15px;
-    cursor: pointer;
-    transition: all 0.3s;
 }
 
-.sbha-doc-tab.active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: white;
+.sh-contact-card span:last-child {
+    color: var(--primary);
+    font-weight: 500;
 }
 
-.sbha-doc-card {
-    background: white;
-    padding: 20px;
-    border-radius: var(--radius);
-    margin-bottom: 15px;
-    box-shadow: var(--shadow);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.sh-wa {
+    background: linear-gradient(135deg, #25d366, #128c7e);
+    color: white !important;
 }
 
-.sbha-doc-info h4 {
-    margin: 0 0 5px 0;
+.sh-wa span:last-child {
+    color: white !important;
 }
 
-.sbha-doc-meta {
-    font-size: 13px;
-    color: var(--text-light);
-}
-
-.sbha-doc-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.sbha-login-prompt {
-    text-align: center;
-    padding: 40px;
-    background: white;
-    border-radius: var(--radius);
-}
-
-/* Modals */
-.sbha-modal {
+/* ==================== AUTH MODAL ==================== */
+.sh-modal {
     display: none;
     position: fixed;
     top: 0;
@@ -711,112 +782,200 @@
     width: 100%;
     height: 100%;
     z-index: 1000;
-}
-
-.sbha-modal.active {
-    display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.sbha-modal-overlay {
+.sh-modal.active {
+    display: flex;
+}
+
+.sh-modal-bg {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
 }
 
-.sbha-modal-box {
+.sh-modal-box {
     position: relative;
-    background: white;
+    background: var(--white);
     border-radius: var(--radius);
     max-width: 450px;
-    width: 90%;
+    width: 92%;
     max-height: 90vh;
     overflow-y: auto;
-    padding: 30px;
+    padding: 32px;
     z-index: 1;
+    animation: modalIn 0.3s ease;
 }
 
-.sbha-modal-large {
-    max-width: 700px;
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-.sbha-modal-close {
+.sh-modal-close {
     position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
+    top: 16px;
+    right: 16px;
+    background: var(--bg);
     border: none;
-    font-size: 28px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 24px;
     cursor: pointer;
-    color: var(--text-light);
-}
-
-/* Auth Tabs */
-.sbha-auth-tabs {
     display: flex;
-    margin-bottom: 25px;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    transition: var(--transition);
 }
 
-.sbha-auth-tab {
+.sh-modal-close:hover {
+    background: var(--error);
+    color: white;
+}
+
+.sh-auth-tabs {
+    display: flex;
+    margin-bottom: 28px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+}
+
+.sh-auth-tab {
     flex: 1;
     padding: 12px;
     border: none;
-    background: var(--bg);
-    font-size: 15px;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
+    border-radius: 8px;
+    transition: var(--transition);
+    color: var(--text-light);
 }
 
-.sbha-auth-tab.active {
+.sh-auth-tab.active {
     background: var(--primary);
     color: white;
 }
 
-.sbha-auth-tab:first-child {
-    border-radius: var(--radius) 0 0 var(--radius);
+.sh-auth-form {
+    display: none;
 }
 
-.sbha-auth-tab:last-child {
-    border-radius: 0 var(--radius) var(--radius) 0;
+.sh-auth-form.active {
+    display: block;
 }
 
-/* Notifications */
-.sbha-notifications {
+/* ==================== NOTIFICATIONS PANEL ==================== */
+.sh-notif-panel {
     position: fixed;
-    top: 80px;
+    top: 70px;
+    right: 20px;
+    width: 320px;
+    max-height: 400px;
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    z-index: 500;
+    display: none;
+    overflow: hidden;
+}
+
+.sh-notif-panel.active {
+    display: block;
+    animation: slideDown 0.2s ease;
+}
+
+.sh-notif-panel h4 {
+    padding: 18px 20px;
+    margin: 0;
+    background: var(--secondary);
+    color: white;
+    font-size: 16px;
+}
+
+#notif-list {
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.sh-notif-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.sh-notif-item:hover {
+    background: var(--bg);
+}
+
+.sh-notif-item.unread {
+    background: #fff7ed;
+    border-left: 3px solid var(--primary);
+}
+
+.sh-notif-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.sh-notif-msg {
+    font-size: 13px;
+    color: var(--text-light);
+}
+
+.sh-notif-time {
+    font-size: 11px;
+    color: var(--text-light);
+    margin-top: 6px;
+}
+
+/* ==================== TOASTS ==================== */
+.sh-toasts {
+    position: fixed;
+    top: 90px;
     right: 20px;
     z-index: 9999;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
-.sbha-toast {
-    background: white;
-    padding: 15px 20px;
-    border-radius: var(--radius);
-    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+.sh-toast {
+    background: var(--white);
+    padding: 16px 24px;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
     display: flex;
     align-items: center;
-    gap: 12px;
-    animation: slideIn 0.3s ease;
-    max-width: 350px;
+    gap: 14px;
+    animation: toastIn 0.3s ease;
+    max-width: 360px;
 }
 
-@keyframes slideIn {
+@keyframes toastIn {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
 
-.sbha-toast-success { border-left: 4px solid var(--success); }
-.sbha-toast-error { border-left: 4px solid var(--error); }
-.sbha-toast-info { border-left: 4px solid var(--primary); }
+.sh-toast-success { border-left: 4px solid var(--success); }
+.sh-toast-error { border-left: 4px solid var(--error); }
+.sh-toast-info { border-left: 4px solid var(--info); }
+.sh-toast-warning { border-left: 4px solid var(--warning); }
 
-/* Sticky Bottom Navigation */
-.sbha-bottom-nav {
+/* ==================== BOTTOM NAVIGATION ==================== */
+.sh-nav {
     position: fixed;
     bottom: 0;
     left: 0;
@@ -824,192 +983,226 @@
     background: var(--secondary);
     display: flex;
     justify-content: space-around;
-    padding: 8px 5px;
+    align-items: flex-end;
+    padding: 10px 8px 12px;
     z-index: 999;
-    box-shadow: 0 -3px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
 }
 
-.sbha-nav-item {
+.sh-nav-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    padding: 8px 12px;
+    padding: 8px 14px;
     border: none;
     background: transparent;
-    color: rgba(255,255,255,0.7);
+    color: rgba(255,255,255,0.6);
     font-size: 11px;
+    font-weight: 500;
     cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.3s;
+    border-radius: 12px;
+    transition: var(--transition);
     position: relative;
 }
 
-.sbha-nav-item:hover,
-.sbha-nav-item.active {
+.sh-nav-btn:hover,
+.sh-nav-btn.active {
     color: white;
     background: rgba(255,255,255,0.1);
 }
 
-.sbha-nav-icon {
-    font-size: 22px;
+.sh-nav-btn span:first-child {
+    font-size: 24px;
 }
 
-.sbha-nav-ai {
-    background: var(--primary);
-    color: white;
-    margin-top: -20px;
-    padding: 15px;
+.sh-nav-ai {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white !important;
+    margin-top: -28px;
+    padding: 18px;
     border-radius: 50%;
-    box-shadow: 0 3px 15px rgba(255,102,0,0.4);
+    box-shadow: 0 6px 25px rgba(255, 102, 0, 0.5);
 }
 
-.sbha-nav-ai .sbha-nav-label {
+.sh-nav-ai:hover {
+    transform: scale(1.1);
+}
+
+.sh-nav-ai span:last-child {
     display: none;
 }
 
-.sbha-nav-ai .sbha-nav-icon {
+.sh-nav-ai span:first-child {
     font-size: 28px;
 }
 
-.sbha-nav-badge {
-    position: absolute;
-    top: 2px;
-    right: 5px;
-    background: var(--error);
-    color: white;
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 10px;
-}
-
-/* Loading */
-.sbha-loading {
+/* ==================== LOADING & MESSAGES ==================== */
+.sh-loading {
     text-align: center;
-    padding: 30px;
+    padding: 40px;
     color: var(--text-light);
 }
 
-/* Messages */
-.sbha-message {
-    padding: 15px;
-    border-radius: 8px;
-    margin-top: 15px;
-    text-align: center;
+.sh-message {
+    padding: 16px 20px;
+    border-radius: var(--radius-sm);
+    margin: 16px 0;
+    font-size: 14px;
 }
 
-.sbha-message.success {
-    background: #d4edda;
-    color: #155724;
+.sh-message.success {
+    background: #d1fae5;
+    color: #065f46;
 }
 
-.sbha-message.error {
-    background: #f8d7da;
-    color: #721c24;
+.sh-message.error {
+    background: #fee2e2;
+    color: #991b1b;
 }
 
-/* Responsive */
+.sh-message.info {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+/* ==================== DOCUMENTS PANEL ==================== */
+.sh-docs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sh-doc-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--white);
+    padding: 20px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.sh-doc-info h4 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--secondary);
+}
+
+.sh-doc-meta {
+    font-size: 13px;
+    color: var(--text-light);
+}
+
+/* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
-    .sbha-form-row {
+    .sh-row {
         grid-template-columns: 1fr;
     }
 
-    .sbha-contact-grid {
+    .sh-contact {
         grid-template-columns: 1fr;
     }
 
-    .sbha-services-grid {
+    .sh-grid {
         grid-template-columns: 1fr;
     }
 
-    .sbha-ai-header {
+    .sh-ai-head {
         flex-direction: column;
         text-align: center;
     }
 
-    .sbha-track-input-group {
+    .sh-track-row {
         flex-direction: column;
     }
 
-    .sbha-doc-card {
+    .sh-doc-card {
         flex-direction: column;
         text-align: center;
-        gap: 15px;
+        gap: 16px;
     }
 
-    .sbha-nav-label {
-        font-size: 10px;
+    .sh-header {
+        padding: 14px 16px;
     }
 
-    .sbha-nav-icon {
-        font-size: 20px;
+    .sh-brand h1 {
+        font-size: 18px;
+    }
+
+    .sh-section-head h2 {
+        font-size: 22px;
+    }
+
+    .sh-ai {
+        padding: 24px 16px;
+    }
+
+    .sh-ai-head h2 {
+        font-size: 22px;
     }
 }
 
 @media (max-width: 480px) {
-    .sbha-panels {
-        padding: 15px;
+    .sh-main {
+        padding: 16px;
     }
 
-    .sbha-ai-assistant {
-        padding: 20px 15px;
-    }
-
-    .sbha-header h1 {
-        font-size: 16px;
-    }
-
-    .sbha-quick-btn {
-        padding: 6px 12px;
-        font-size: 12px;
-    }
-
-    .sbha-service-card {
+    .sh-form-section {
         padding: 20px;
     }
 
-    .sbha-nav-item {
-        padding: 6px 8px;
+    .sh-filters {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 8px;
+    }
+
+    .sh-filter {
+        flex-shrink: 0;
+    }
+
+    .sh-nav-btn {
+        padding: 6px 10px;
+    }
+
+    .sh-nav-btn span:first-child {
+        font-size: 20px;
+    }
+
+    .sh-nav-btn span:last-child {
+        font-size: 10px;
+    }
+
+    .sh-quick-btns button {
+        padding: 8px 14px;
+        font-size: 12px;
+    }
+
+    .sh-notif-panel {
+        right: 10px;
+        left: 10px;
+        width: auto;
     }
 }
 
-/* PDF Quote/Invoice Styles (for generation) */
-.sbha-pdf-doc {
-    font-family: Arial, sans-serif;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 40px;
+/* ==================== ANIMATIONS ==================== */
+.sh-pulse {
+    animation: pulse 2s infinite;
 }
 
-.sbha-pdf-header {
-    display: flex;
-    justify-content: space-between;
-    border-bottom: 3px solid var(--primary);
-    padding-bottom: 20px;
-    margin-bottom: 30px;
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
-.sbha-pdf-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 20px 0;
+.sh-bounce {
+    animation: bounce 1s infinite;
 }
 
-.sbha-pdf-table th,
-.sbha-pdf-table td {
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: left;
-}
-
-.sbha-pdf-table th {
-    background: var(--primary);
-    color: white;
-}
-
-.sbha-pdf-total {
-    text-align: right;
-    font-size: 24px;
-    font-weight: bold;
-    margin-top: 20px;
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
 }

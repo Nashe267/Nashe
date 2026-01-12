@@ -1,468 +1,417 @@
 /**
- * Switch Business Hub AI - Complete Hub JavaScript
- * Single-page app with AI assistant & all features
+ * Switch Business Hub AI - Premium App JavaScript
+ * Complete single-page app with AI assistant & all features
  */
 
 (function($) {
     'use strict';
 
-    window.SBHAHub = {
+    window.SwitchHub = {
         ajaxUrl: '',
         nonce: '',
-        currency: '$',
 
         init: function() {
-            var $app = $('.sbha-hub-app');
+            var $app = $('.sh-app');
             if (!$app.length) return;
 
             this.ajaxUrl = $app.data('ajax') || '/wp-admin/admin-ajax.php';
             this.nonce = $app.data('nonce') || '';
 
             this.bindEvents();
-            this.initQuoteCalculator();
-            this.loadCustomerOrders();
+            this.loadNotifications();
+            this.loadMyOrders();
         },
 
         bindEvents: function() {
+            var self = this;
+
             // Bottom navigation
-            $(document).on('click', '.sbha-nav-item[data-panel]', this.switchPanel);
-            $(document).on('click', '.sbha-nav-item[data-action="focus-ai"]', this.focusAI);
-
-            // AI Assistant
-            $(document).on('click', '#sbha-ai-send', this.sendAIMessage);
-            $(document).on('keypress', '#sbha-ai-input', function(e) {
-                if (e.which === 13) SBHAHub.sendAIMessage();
+            $(document).on('click', '.sh-nav-btn[data-panel]', function(e) {
+                e.preventDefault();
+                self.switchPanel($(this).data('panel'));
             });
-            $(document).on('click', '.sbha-quick-btn', this.handleQuickButton);
 
-            // Category filtering
-            $(document).on('click', '.sbha-cat-btn', this.filterCategory);
+            // AI focus button
+            $(document).on('click', '.sh-nav-ai', function(e) {
+                e.preventDefault();
+                $('html, body').animate({ scrollTop: 0 }, 300, function() {
+                    $('#ai-input').focus();
+                });
+            });
 
-            // Service cards
-            $(document).on('click', '.sbha-order-btn', this.orderService);
+            // AI Chat
+            $(document).on('click', '#ai-send', function() { self.sendAI(); });
+            $(document).on('keypress', '#ai-input', function(e) {
+                if (e.which === 13) self.sendAI();
+            });
+            $(document).on('click', '.sh-quick-btns button', function() {
+                var q = $(this).data('q');
+                $('#ai-input').val(q);
+                self.sendAI();
+            });
 
-            // Forms
-            $(document).on('submit', '#sbha-quote-form', this.submitQuote);
-            $(document).on('submit', '#sbha-track-form', this.trackOrder);
-            $(document).on('submit', '#sbha-contact-form', this.submitContact);
-            $(document).on('submit', '#sbha-login-form', this.handleLogin);
-            $(document).on('submit', '#sbha-register-form', this.handleRegister);
-            $(document).on('submit', '#sbha-doc-lookup-form', this.lookupDocuments);
+            // Category filter
+            $(document).on('click', '.sh-filter', function() {
+                var cat = $(this).data('cat');
+                $('.sh-filter').removeClass('active');
+                $(this).addClass('active');
+
+                if (cat === 'all') {
+                    $('.sh-service').removeClass('hidden');
+                } else {
+                    $('.sh-service').each(function() {
+                        $(this).toggleClass('hidden', $(this).data('cat') !== cat);
+                    });
+                }
+            });
+
+            // Get Quote buttons
+            $(document).on('click', '.sh-get-quote', function(e) {
+                e.preventDefault();
+                var $card = $(this).closest('.sh-service');
+                var id = $card.data('id');
+                var name = $card.data('name');
+
+                $('#quote-service').val(id);
+                self.switchPanel('quote');
+                self.updatePreview();
+            });
+
+            // Quote form
+            $(document).on('submit', '#quote-form', function(e) {
+                e.preventDefault();
+                self.submitQuote($(this));
+            });
 
             // Quote calculator
-            $(document).on('change', '#quote-service-select, #quote-quantity, [name="urgency"]', this.updateQuotePreview);
+            $(document).on('change', '#quote-service, #quote-qty, #quote-urgency', function() {
+                self.updatePreview();
+            });
 
-            // Modals
-            $(document).on('click', '.sbha-login-btn', function() { SBHAHub.openModal('sbha-auth-modal'); });
-            $(document).on('click', '.sbha-modal-overlay, .sbha-modal-close', this.closeModal);
+            // Show custom field when "Other" selected
+            $(document).on('change', '#quote-service', function() {
+                var isCustom = $(this).val() === 'custom';
+                $('.sh-custom-field').toggle(isCustom);
+            });
+
+            // Track form
+            $(document).on('submit', '#track-form', function(e) {
+                e.preventDefault();
+                self.trackOrder($('#track-input').val());
+            });
+
+            // Contact form
+            $(document).on('submit', '#contact-form', function(e) {
+                e.preventDefault();
+                self.submitContact($(this));
+            });
+
+            // Auth modal
+            $(document).on('click', '.sh-login-btn', function() { self.openModal('auth-modal'); });
+            $(document).on('click', '.sh-modal-bg, .sh-modal-close', function() { self.closeModal(); });
 
             // Auth tabs
-            $(document).on('click', '.sbha-auth-tab', this.switchAuthTab);
-
-            // Document tabs
-            $(document).on('click', '.sbha-doc-tab', this.switchDocTab);
-        },
-
-        // Switch panel via bottom nav
-        switchPanel: function(e) {
-            e.preventDefault();
-            var panel = $(this).data('panel');
-
-            // Update nav
-            $('.sbha-nav-item').removeClass('active');
-            $(this).addClass('active');
-
-            // Update panel
-            $('.sbha-panel').removeClass('sbha-panel-active');
-            $('#sbha-panel-' + panel).addClass('sbha-panel-active');
-
-            // Scroll to top of content
-            $('html, body').animate({ scrollTop: $('.sbha-main-content').offset().top - 60 }, 300);
-        },
-
-        // Focus on AI input
-        focusAI: function(e) {
-            e.preventDefault();
-            $('html, body').animate({ scrollTop: 0 }, 300, function() {
-                $('#sbha-ai-input').focus();
+            $(document).on('click', '.sh-auth-tab', function() {
+                var tab = $(this).data('tab');
+                $('.sh-auth-tab').removeClass('active');
+                $(this).addClass('active');
+                $('.sh-auth-form').removeClass('active');
+                $('#' + tab + '-form').addClass('active');
             });
+
+            // Login form
+            $(document).on('submit', '#login-form', function(e) {
+                e.preventDefault();
+                self.login($(this));
+            });
+
+            // Register form
+            $(document).on('submit', '#register-form', function(e) {
+                e.preventDefault();
+                self.register($(this));
+            });
+
+            // Reset form
+            $(document).on('submit', '#reset-form', function(e) {
+                e.preventDefault();
+                self.resetPassword($(this));
+            });
+
+            // Logout
+            $(document).on('click', '.sh-logout', function(e) {
+                e.preventDefault();
+                self.logout();
+            });
+
+            // User menu dropdown
+            $(document).on('click', '.sh-user-btn', function(e) {
+                e.stopPropagation();
+                $('.sh-dropdown').toggleClass('active');
+            });
+
+            // Notifications
+            $(document).on('click', '.sh-notif-icon', function(e) {
+                e.stopPropagation();
+                $('.sh-notif-panel').toggleClass('active');
+            });
+
+            // Close dropdowns on outside click
+            $(document).on('click', function() {
+                $('.sh-dropdown').removeClass('active');
+                $('.sh-notif-panel').removeClass('active');
+            });
+        },
+
+        // Switch panel
+        switchPanel: function(panel) {
+            $('.sh-nav-btn').removeClass('active');
+            $('.sh-nav-btn[data-panel="' + panel + '"]').addClass('active');
+            $('.sh-panel').removeClass('active');
+            $('#panel-' + panel).addClass('active');
+            $('html, body').animate({ scrollTop: $('.sh-main').offset().top - 60 }, 300);
         },
 
         // Send AI message
-        sendAIMessage: function() {
-            var $input = $('#sbha-ai-input');
+        sendAI: function() {
+            var $input = $('#ai-input');
             var query = $input.val().trim();
-
             if (!query) return;
 
-            var $chat = $('#sbha-chat-messages');
+            var $chat = $('#ai-chat');
 
             // Add user message
-            $chat.append('<div class="sbha-chat-message sbha-user-message">' + SBHAHub.escapeHtml(query) + '</div>');
-
-            // Clear input
+            $chat.append('<div class="sh-msg sh-msg-user">' + this.escapeHtml(query) + '</div>');
             $input.val('');
 
-            // Show typing indicator
-            $chat.append('<div class="sbha-chat-message sbha-bot-message sbha-typing">🤖 Thinking...</div>');
+            // Show typing
+            $chat.append('<div class="sh-msg sh-msg-bot sh-typing"><p>Thinking...</p></div>');
             $chat.scrollTop($chat[0].scrollHeight);
 
-            // Process query
-            SBHAHub.processAIQuery(query);
+            // Process
+            this.processAI(query);
         },
 
         // Process AI query
-        processAIQuery: function(query) {
-            var $chat = $('#sbha-chat-messages');
-            var lowerQuery = query.toLowerCase();
+        processAI: function(query) {
+            var self = this;
+            var $chat = $('#ai-chat');
+            var q = query.toLowerCase();
             var response = '';
-            var matchedServices = [];
 
-            // Check for track order
-            if (lowerQuery.includes('track') || lowerQuery.includes('order') || lowerQuery.includes('status')) {
-                response = '📦 I can help you track your order! Let me open the tracking panel for you.';
-                setTimeout(function() {
-                    $('.sbha-nav-item[data-panel="track"]').click();
-                }, 1500);
-            }
-            // Check for quote/price request
-            else if (lowerQuery.includes('quote') || lowerQuery.includes('price') || lowerQuery.includes('cost') || lowerQuery.includes('how much')) {
-                response = '💰 I\'ll help you get a quote! Let me open the quote form for you.';
-                setTimeout(function() {
-                    $('.sbha-nav-item[data-panel="quote"]').click();
-                }, 1500);
-            }
-            // Check for contact
-            else if (lowerQuery.includes('contact') || lowerQuery.includes('call') || lowerQuery.includes('phone') || lowerQuery.includes('email')) {
-                response = '📞 Here are our contact options:';
-                setTimeout(function() {
-                    $('.sbha-nav-item[data-panel="contact"]').click();
-                }, 1500);
-            }
-            // Match services
-            else {
-                // Find matching services
-                $('.sbha-service-card').each(function() {
-                    var $card = $(this);
-                    var name = $card.data('name').toLowerCase();
-                    var category = $card.data('category').toLowerCase();
-
-                    if (name.includes(lowerQuery) || lowerQuery.includes(name) ||
-                        category.includes(lowerQuery) || lowerQuery.includes(category) ||
-                        SBHAHub.matchKeywords(lowerQuery, name, category)) {
-                        matchedServices.push({
-                            id: $card.data('id'),
-                            name: $card.data('name'),
-                            price: $card.data('price')
-                        });
-                    }
-                });
-
-                if (matchedServices.length > 0) {
-                    response = '✨ Based on your request, I found these services:';
-                    response += '<div class="sbha-ai-results">';
-                    matchedServices.slice(0, 3).forEach(function(s) {
-                        response += '<button class="sbha-ai-service-btn" data-id="' + s.id + '">' +
-                            s.name + ' - From $' + parseFloat(s.price).toFixed(2) +
-                            '</button>';
-                    });
-                    response += '</div>';
-                    response += '<p>Click a service above or <button class="sbha-quick-btn" data-query="get quote">Get a Custom Quote</button></p>';
-                } else {
-                    response = '🤔 I couldn\'t find an exact match, but I can help you get a custom quote for: "' + query + '"';
-                    response += '<div style="margin-top:15px"><button class="sbha-quick-btn" data-query="custom quote">Request Custom Quote</button></div>';
-                }
-            }
-
-            // Remove typing and add response
             setTimeout(function() {
-                $chat.find('.sbha-typing').remove();
-                $chat.append('<div class="sbha-chat-message sbha-bot-message"><p>' + response + '</p></div>');
-                $chat.scrollTop($chat[0].scrollHeight);
+                $chat.find('.sh-typing').remove();
 
-                // Bind service buttons
-                $('.sbha-ai-service-btn').off('click').on('click', function() {
-                    var id = $(this).data('id');
-                    SBHAHub.selectServiceForQuote(id);
-                });
+                // Check keywords
+                if (q.includes('track') || q.includes('order') || q.includes('status')) {
+                    response = '<p>I can help you track your order! Let me open the tracking panel for you.</p>';
+                    setTimeout(function() { self.switchPanel('track'); }, 1200);
+                }
+                else if (q.includes('quote') || q.includes('price') || q.includes('cost') || q.includes('how much')) {
+                    response = '<p>I\'ll help you get a quote! Let me open the quote form.</p>';
+                    setTimeout(function() { self.switchPanel('quote'); }, 1200);
+                }
+                else if (q.includes('contact') || q.includes('call') || q.includes('phone') || q.includes('whatsapp')) {
+                    response = '<p>Here are our contact options!</p>';
+                    setTimeout(function() { self.switchPanel('contact'); }, 1200);
+                }
+                else if (q.includes('logo') || q.includes('brand')) {
+                    response = '<p>We offer professional logo design and branding services! Check out our services or get a custom quote.</p>';
+                    response += '<div class="sh-quick-btns" style="margin-top:12px"><button data-q="get quote for logo">Get Logo Quote</button></div>';
+                }
+                else if (q.includes('website') || q.includes('web')) {
+                    response = '<p>We build modern, responsive websites! From landing pages to full e-commerce solutions.</p>';
+                    response += '<div class="sh-quick-btns" style="margin-top:12px"><button data-q="get quote for website">Get Website Quote</button></div>';
+                }
+                else if (q.includes('print') || q.includes('card') || q.includes('flyer') || q.includes('banner')) {
+                    response = '<p>We offer high-quality printing services including business cards, flyers, banners, and more!</p>';
+                    response += '<div class="sh-quick-btns" style="margin-top:12px"><button data-q="get quote for printing">Get Printing Quote</button></div>';
+                }
+                else if (q.includes('architect') || q.includes('building') || q.includes('plan') || q.includes('drawing')) {
+                    response = '<p>We provide professional architectural drawings and building plans!</p>';
+                    response += '<div class="sh-quick-btns" style="margin-top:12px"><button data-q="get quote for architectural">Get Architecture Quote</button></div>';
+                }
+                else {
+                    response = '<p>I\'d be happy to help with that! For "' + self.escapeHtml(query) + '", let me get you a custom quote.</p>';
+                    response += '<div class="sh-quick-btns" style="margin-top:12px">';
+                    response += '<button data-q="get quote">Get Custom Quote</button>';
+                    response += '<button data-q="contact">Contact Us</button>';
+                    response += '</div>';
+                }
+
+                $chat.append('<div class="sh-msg sh-msg-bot">' + response + '</div>');
+                $chat.scrollTop($chat[0].scrollHeight);
             }, 1000);
         },
 
-        // Match keywords for AI
-        matchKeywords: function(query, name, category) {
-            var keywords = {
-                'business card': ['card', 'business', 'visiting'],
-                'logo': ['logo', 'brand', 'identity'],
-                'flyer': ['flyer', 'flier', 'leaflet', 'brochure'],
-                'website': ['website', 'web', 'site', 'online'],
-                'banner': ['banner', 'sign', 'signage', 'poster'],
-                'tshirt': ['tshirt', 't-shirt', 'shirt', 'apparel'],
-                'architectural': ['architect', 'building', 'plan', 'drawing', 'blueprint'],
-                'printing': ['print', 'printing', 'printed']
-            };
-
-            for (var key in keywords) {
-                if (query.includes(key) || keywords[key].some(function(k) { return query.includes(k); })) {
-                    if (name.includes(key) || category.includes(key.split(' ')[0])) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        },
-
-        // Handle quick button
-        handleQuickButton: function() {
-            var query = $(this).data('query');
-            $('#sbha-ai-input').val(query);
-            SBHAHub.sendAIMessage();
-        },
-
-        // Filter category
-        filterCategory: function() {
-            var cat = $(this).data('cat');
-
-            $('.sbha-cat-btn').removeClass('active');
-            $(this).addClass('active');
-
-            if (cat === 'all') {
-                $('.sbha-service-card').removeClass('hidden');
-            } else {
-                $('.sbha-service-card').each(function() {
-                    if ($(this).data('category') === cat) {
-                        $(this).removeClass('hidden');
-                    } else {
-                        $(this).addClass('hidden');
-                    }
-                });
-            }
-        },
-
-        // Order service - go to quote form
-        orderService: function(e) {
-            e.stopPropagation();
-            var $card = $(this).closest('.sbha-service-card');
-            var id = $card.data('id');
-
-            SBHAHub.selectServiceForQuote(id);
-        },
-
-        // Select service for quote
-        selectServiceForQuote: function(id) {
-            $('#quote-service-select').val(id).trigger('change');
-            $('#quote-service-id').val(id);
-
-            // Switch to quote panel
-            $('.sbha-nav-item[data-panel="quote"]').click();
-
-            // Scroll to form
-            setTimeout(function() {
-                $('html, body').animate({ scrollTop: $('#sbha-panel-quote').offset().top - 70 }, 300);
-            }, 300);
-        },
-
-        // Initialize quote calculator
-        initQuoteCalculator: function() {
-            this.updateQuotePreview();
-        },
-
         // Update quote preview
-        updateQuotePreview: function() {
-            var $select = $('#quote-service-select');
-            var selectedOption = $select.find('option:selected');
-            var basePrice = parseFloat(selectedOption.data('price')) || 0;
-            var quantity = parseInt($('#quote-quantity').val()) || 1;
-            var urgency = $('[name="urgency"]').val();
-            var urgencyMultiplier = 1;
+        updatePreview: function() {
+            var $sel = $('#quote-service option:selected');
+            var basePrice = parseFloat($sel.data('price')) || 0;
+            var qty = parseInt($('#quote-qty').val()) || 1;
+            var urgency = $('#quote-urgency').val();
+            var mult = urgency === 'express' ? 1.25 : (urgency === 'rush' ? 1.5 : 1);
+            var total = basePrice * qty * mult;
 
-            if (urgency === 'express') urgencyMultiplier = 1.25;
-            if (urgency === 'rush') urgencyMultiplier = 1.5;
-
-            var total = basePrice * quantity * urgencyMultiplier;
-
-            $('#preview-service').text(selectedOption.text().split(' - ')[0] || '-');
-            $('#preview-qty').text(quantity);
-            $('#preview-base').text('$' + basePrice.toFixed(2));
-            $('#preview-total').text('$' + total.toFixed(2));
+            $('#prev-service').text($sel.text().split(' - ')[0] || '-');
+            $('#prev-qty').text(qty);
+            $('#prev-base').text('$' + basePrice.toFixed(2));
+            $('#prev-total').text('$' + total.toFixed(2));
         },
 
         // Submit quote
-        submitQuote: function(e) {
-            e.preventDefault();
-            var $form = $(this);
-            var $btn = $form.find('.sbha-btn-primary');
+        submitQuote: function($form) {
+            var self = this;
+            var $btn = $form.find('.sh-btn-primary');
 
             if (!$form[0].checkValidity()) {
                 $form[0].reportValidity();
                 return;
             }
 
-            $btn.find('.btn-text').hide();
-            $btn.find('.btn-loading').show();
-            $btn.prop('disabled', true);
+            $btn.prop('disabled', true).text('Submitting...');
 
             var formData = new FormData($form[0]);
             formData.append('action', 'sbha_submit_quote');
-            formData.append('nonce', SBHAHub.nonce);
+            formData.append('nonce', this.nonce);
 
             $.ajax({
-                url: SBHAHub.ajaxUrl,
+                url: this.ajaxUrl,
                 type: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
-                success: function(response) {
-                    if (response.success) {
-                        SBHAHub.showToast('success', '✅ Quote submitted! Check your email for the PDF.');
-
-                        // Show download link if available
-                        if (response.data && response.data.pdf_url) {
-                            SBHAHub.showToast('info', '📄 <a href="' + response.data.pdf_url + '" target="_blank">Download your quote PDF</a>');
+                success: function(res) {
+                    if (res.success) {
+                        self.toast('success', 'Quote submitted! Check your email for the PDF.');
+                        if (res.data && res.data.pdf_url) {
+                            self.toast('info', '<a href="' + res.data.pdf_url + '" target="_blank">Download Quote PDF</a>');
                         }
-
                         $form[0].reset();
-                        SBHAHub.updateQuotePreview();
+                        self.updatePreview();
                     } else {
-                        SBHAHub.showToast('error', response.data || 'Error submitting quote');
+                        self.toast('error', res.data || 'Error submitting quote');
                     }
                 },
                 error: function() {
-                    SBHAHub.showToast('error', 'Connection error. Please try again.');
+                    self.toast('error', 'Connection error. Please try again.');
                 },
                 complete: function() {
-                    $btn.find('.btn-text').show();
-                    $btn.find('.btn-loading').hide();
-                    $btn.prop('disabled', false);
+                    $btn.prop('disabled', false).text('Get Quote');
                 }
             });
         },
 
         // Track order
-        trackOrder: function(e) {
-            e.preventDefault();
-            var query = $('#track-input').val().trim();
-            var $results = $('#sbha-track-results');
+        trackOrder: function(query) {
+            var self = this;
+            var $results = $('#track-results');
 
             if (!query) {
-                $results.html('<div class="sbha-message error">Please enter an order number or email</div>');
+                $results.html('<div class="sh-message error">Please enter an order number or email</div>');
                 return;
             }
 
-            $results.html('<div class="sbha-loading">🔍 Searching...</div>');
+            $results.html('<div class="sh-loading">Searching...</div>');
 
             $.ajax({
-                url: SBHAHub.ajaxUrl,
+                url: this.ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'sbha_track_order',
                     query: query,
-                    nonce: SBHAHub.nonce
+                    nonce: this.nonce
                 },
-                success: function(response) {
-                    if (response.success && response.data.orders && response.data.orders.length > 0) {
+                success: function(res) {
+                    if (res.success && res.data.orders && res.data.orders.length > 0) {
                         var html = '';
-                        response.data.orders.forEach(function(order) {
-                            html += SBHAHub.renderOrderCard(order);
+                        res.data.orders.forEach(function(o) {
+                            html += self.renderOrder(o);
                         });
                         $results.html(html);
                     } else {
-                        $results.html('<div class="sbha-message error">No orders found. Please check your order number or email.</div>');
+                        $results.html('<div class="sh-message error">No orders found.</div>');
                     }
                 },
                 error: function() {
-                    $results.html('<div class="sbha-message error">Error searching. Please try again.</div>');
+                    $results.html('<div class="sh-message error">Error searching. Try again.</div>');
                 }
             });
         },
 
         // Render order card
-        renderOrderCard: function(order) {
-            var html = '<div class="sbha-order-card">' +
-                '<div class="sbha-order-header">' +
-                    '<span class="sbha-order-number">#' + order.order_number + '</span>' +
-                    '<span class="sbha-status-badge sbha-status-' + order.status + '">' + order.status_label + '</span>' +
-                '</div>' +
-                '<div class="sbha-order-details">' +
-                    '<p><strong>Service:</strong> ' + order.service_name + '</p>' +
-                    '<p><strong>Date:</strong> ' + order.created_date + '</p>' +
-                    (order.estimated_completion ? '<p><strong>Est. Completion:</strong> ' + order.estimated_completion + '</p>' : '') +
-                '</div>';
-
-            if (order.admin_response) {
-                html += '<div class="sbha-order-response">' +
-                    '<h4>📬 Response from ' + order.business_name + ':</h4>' +
-                    '<p>' + order.admin_response + '</p>' +
-                '</div>';
+        renderOrder: function(o) {
+            var html = '<div class="sh-order-card">';
+            html += '<div class="sh-order-header">';
+            html += '<span class="sh-order-number">#' + o.order_number + '</span>';
+            html += '<span class="sh-status sh-status-' + o.status + '">' + o.status_label + '</span>';
+            html += '</div>';
+            html += '<p><strong>Service:</strong> ' + o.service_name + '</p>';
+            html += '<p><strong>Date:</strong> ' + o.created_date + '</p>';
+            if (o.estimated_completion) {
+                html += '<p><strong>Est. Completion:</strong> ' + o.estimated_completion + '</p>';
             }
-
-            if (order.invoice_url) {
-                html += '<div class="sbha-order-actions" style="margin-top:15px">' +
-                    '<a href="' + order.invoice_url + '" class="sbha-btn sbha-btn-primary" target="_blank">📄 View Invoice</a>' +
-                '</div>';
+            if (o.admin_response) {
+                html += '<div class="sh-order-response">';
+                html += '<h4>Response from Switch Hub:</h4>';
+                html += '<p>' + o.admin_response + '</p>';
+                html += '</div>';
             }
-
+            if (o.invoice_url) {
+                html += '<div style="margin-top:15px"><a href="' + o.invoice_url + '" class="sh-btn sh-btn-primary sh-btn-sm" target="_blank">View Invoice</a></div>';
+            }
             html += '</div>';
             return html;
         },
 
-        // Load customer orders (if logged in)
-        loadCustomerOrders: function() {
-            var $container = $('#sbha-customer-orders');
+        // Load my orders
+        loadMyOrders: function() {
+            var self = this;
+            var $container = $('#my-orders');
             if (!$container.length) return;
 
             $.ajax({
-                url: SBHAHub.ajaxUrl,
+                url: this.ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'sbha_get_my_orders',
-                    nonce: SBHAHub.nonce
+                    nonce: this.nonce
                 },
-                success: function(response) {
-                    if (response.success && response.data.orders && response.data.orders.length > 0) {
+                success: function(res) {
+                    if (res.success && res.data.orders && res.data.orders.length > 0) {
                         var html = '';
-                        response.data.orders.forEach(function(order) {
-                            html += SBHAHub.renderOrderCard(order);
+                        res.data.orders.forEach(function(o) {
+                            html += self.renderOrder(o);
                         });
                         $container.html(html);
-
-                        // Update badge
-                        var pending = response.data.orders.filter(function(o) { return o.has_new_response; }).length;
-                        if (pending > 0) {
-                            $('#orders-badge').text(pending).show();
-                        }
                     } else {
                         $container.html('<p>No orders yet.</p>');
                     }
-                },
-                error: function() {
-                    $container.html('<p>Unable to load orders.</p>');
                 }
             });
         },
 
-        // Submit contact form
-        submitContact: function(e) {
-            e.preventDefault();
-            var $form = $(this);
-            var $btn = $form.find('.sbha-btn-primary');
-            var $msg = $('#contact-message');
+        // Submit contact
+        submitContact: function($form) {
+            var self = this;
+            var $btn = $form.find('.sh-btn-primary');
+            var $msg = $('#contact-msg');
 
             $btn.prop('disabled', true).text('Sending...');
 
             $.ajax({
-                url: SBHAHub.ajaxUrl,
+                url: this.ajaxUrl,
                 type: 'POST',
-                data: $form.serialize() + '&action=sbha_contact&nonce=' + SBHAHub.nonce,
-                success: function(response) {
-                    if (response.success) {
-                        $msg.removeClass('error').addClass('sbha-message success').text('✅ Message sent! We\'ll respond soon.').show();
+                data: $form.serialize() + '&action=sbha_contact&nonce=' + this.nonce,
+                success: function(res) {
+                    if (res.success) {
+                        $msg.removeClass('error').addClass('sh-message success').text('Message sent! We\'ll respond soon.').show();
                         $form[0].reset();
                     } else {
-                        $msg.removeClass('success').addClass('sbha-message error').text(response.data || 'Error sending message').show();
+                        $msg.removeClass('success').addClass('sh-message error').text(res.data || 'Error sending').show();
                     }
                 },
                 error: function() {
-                    $msg.removeClass('success').addClass('sbha-message error').text('Connection error').show();
+                    $msg.removeClass('success').addClass('sh-message error').text('Connection error').show();
                 },
                 complete: function() {
                     $btn.prop('disabled', false).text('Send Message');
@@ -470,134 +419,160 @@
             });
         },
 
-        // Handle login
-        handleLogin: function(e) {
-            e.preventDefault();
-            var $form = $(this);
-            var $btn = $form.find('.sbha-btn-primary');
-            var $msg = $('#login-message');
+        // Login
+        login: function($form) {
+            var self = this;
+            var $btn = $form.find('.sh-btn-primary');
+            var $msg = $('#login-msg');
 
             $btn.prop('disabled', true).text('Logging in...');
 
             $.ajax({
-                url: SBHAHub.ajaxUrl,
+                url: this.ajaxUrl,
                 type: 'POST',
-                data: $form.serialize() + '&action=sbha_login&nonce=' + SBHAHub.nonce,
-                success: function(response) {
-                    if (response.success) {
-                        $msg.removeClass('error').addClass('sbha-message success').text('✅ Login successful!').show();
-                        setTimeout(function() {
-                            window.location.reload();
-                        }, 1000);
+                data: $form.serialize() + '&action=sbha_login&nonce=' + this.nonce,
+                success: function(res) {
+                    if (res.success) {
+                        $msg.removeClass('error').addClass('sh-message success').text('Login successful!').show();
+                        setTimeout(function() { window.location.reload(); }, 1000);
                     } else {
-                        $msg.removeClass('success').addClass('sbha-message error').text(response.data || 'Invalid credentials').show();
+                        $msg.removeClass('success').addClass('sh-message error').text(res.data || 'Invalid credentials').show();
                         $btn.prop('disabled', false).text('Login');
                     }
                 },
                 error: function() {
-                    $msg.removeClass('success').addClass('sbha-message error').text('Connection error').show();
+                    $msg.removeClass('success').addClass('sh-message error').text('Connection error').show();
                     $btn.prop('disabled', false).text('Login');
                 }
             });
         },
 
-        // Handle register
-        handleRegister: function(e) {
-            e.preventDefault();
-            var $form = $(this);
-            var $btn = $form.find('.sbha-btn-primary');
-            var $msg = $('#register-message');
+        // Register
+        register: function($form) {
+            var self = this;
+            var $btn = $form.find('.sh-btn-primary');
+            var $msg = $('#register-msg');
+
+            // Validate password match
+            var pw = $form.find('[name="password"]').val();
+            var pw2 = $form.find('[name="password_confirm"]').val();
+            if (pw !== pw2) {
+                $msg.removeClass('success').addClass('sh-message error').text('Passwords do not match').show();
+                return;
+            }
 
             $btn.prop('disabled', true).text('Creating account...');
 
             $.ajax({
-                url: SBHAHub.ajaxUrl,
+                url: this.ajaxUrl,
                 type: 'POST',
-                data: $form.serialize() + '&action=sbha_register&nonce=' + SBHAHub.nonce,
-                success: function(response) {
-                    if (response.success) {
-                        $msg.removeClass('error').addClass('sbha-message success').text('✅ Account created! Logging you in...').show();
-                        setTimeout(function() {
-                            window.location.reload();
-                        }, 1500);
+                data: $form.serialize() + '&action=sbha_register&nonce=' + this.nonce,
+                success: function(res) {
+                    if (res.success) {
+                        $msg.removeClass('error').addClass('sh-message success').text('Account created! Logging in...').show();
+                        setTimeout(function() { window.location.reload(); }, 1500);
                     } else {
-                        $msg.removeClass('success').addClass('sbha-message error').text(response.data || 'Registration failed').show();
+                        $msg.removeClass('success').addClass('sh-message error').text(res.data || 'Registration failed').show();
                         $btn.prop('disabled', false).text('Create Account');
                     }
                 },
                 error: function() {
-                    $msg.removeClass('success').addClass('sbha-message error').text('Connection error').show();
+                    $msg.removeClass('success').addClass('sh-message error').text('Connection error').show();
                     $btn.prop('disabled', false).text('Create Account');
                 }
             });
         },
 
-        // Lookup documents by email
-        lookupDocuments: function(e) {
-            e.preventDefault();
-            var email = $(this).find('[name="email"]').val();
-            var $container = $('#sbha-documents-list');
+        // Reset password
+        resetPassword: function($form) {
+            var self = this;
+            var $btn = $form.find('.sh-btn-primary');
+            var $msg = $('#reset-msg');
 
-            if (!$container.length) {
-                $container = $('<div id="sbha-documents-list"></div>');
-                $(this).after($container);
-            }
-
-            $container.html('<div class="sbha-loading">Loading...</div>');
+            $btn.prop('disabled', true).text('Resetting...');
 
             $.ajax({
-                url: SBHAHub.ajaxUrl,
+                url: this.ajaxUrl,
                 type: 'POST',
-                data: {
-                    action: 'sbha_get_documents',
-                    email: email,
-                    nonce: SBHAHub.nonce
-                },
-                success: function(response) {
-                    if (response.success && response.data.documents && response.data.documents.length > 0) {
-                        var html = '';
-                        response.data.documents.forEach(function(doc) {
-                            html += '<div class="sbha-doc-card">' +
-                                '<div class="sbha-doc-info">' +
-                                    '<h4>' + doc.type + ' #' + doc.number + '</h4>' +
-                                    '<p class="sbha-doc-meta">' + doc.date + ' - ' + doc.service + '</p>' +
-                                '</div>' +
-                                '<div class="sbha-doc-actions">' +
-                                    '<a href="' + doc.pdf_url + '" class="sbha-btn sbha-btn-primary" target="_blank">Download PDF</a>' +
-                                '</div>' +
-                            '</div>';
-                        });
-                        $container.html(html);
+                data: $form.serialize() + '&action=sbha_reset_password&nonce=' + this.nonce,
+                success: function(res) {
+                    if (res.success) {
+                        $msg.removeClass('error').addClass('sh-message success').text('Password reset! You can now login.').show();
+                        $form[0].reset();
+                        // Switch to login tab
+                        setTimeout(function() {
+                            $('.sh-auth-tab[data-tab="login"]').click();
+                        }, 1500);
                     } else {
-                        $container.html('<div class="sbha-message">No documents found for this email.</div>');
+                        $msg.removeClass('success').addClass('sh-message error').text(res.data || 'Reset failed').show();
                     }
                 },
                 error: function() {
-                    $container.html('<div class="sbha-message error">Error loading documents.</div>');
+                    $msg.removeClass('success').addClass('sh-message error').text('Connection error').show();
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).text('Reset Password');
                 }
             });
         },
 
-        // Switch auth tab
-        switchAuthTab: function() {
-            var tab = $(this).data('auth');
-
-            $('.sbha-auth-tab').removeClass('active');
-            $(this).addClass('active');
-
-            $('.sbha-auth-form').hide();
-            $('#sbha-' + tab + '-form').show();
+        // Logout
+        logout: function() {
+            var self = this;
+            $.ajax({
+                url: this.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'sbha_logout',
+                    nonce: this.nonce
+                },
+                success: function(res) {
+                    if (res.success) {
+                        self.toast('success', 'Logged out successfully');
+                        setTimeout(function() { window.location.reload(); }, 1000);
+                    }
+                }
+            });
         },
 
-        // Switch doc tab
-        switchDocTab: function() {
-            var tab = $(this).data('doc');
+        // Load notifications
+        loadNotifications: function() {
+            var self = this;
+            var $list = $('#notif-list');
+            if (!$list.length) return;
 
-            $('.sbha-doc-tab').removeClass('active');
-            $(this).addClass('active');
+            $.ajax({
+                url: this.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'sbha_get_notifications',
+                    nonce: this.nonce
+                },
+                success: function(res) {
+                    if (res.success && res.data.notifications && res.data.notifications.length > 0) {
+                        var html = '';
+                        var unread = 0;
+                        res.data.notifications.forEach(function(n) {
+                            html += '<div class="sh-notif-item' + (n.is_read ? '' : ' unread') + '" data-id="' + n.id + '">';
+                            html += '<div class="sh-notif-title">' + n.title + '</div>';
+                            html += '<div class="sh-notif-msg">' + n.message + '</div>';
+                            html += '<div class="sh-notif-time">' + n.time_ago + '</div>';
+                            html += '</div>';
+                            if (!n.is_read) unread++;
+                        });
+                        $list.html(html);
 
-            // Reload documents for this type
-            // (would filter server-side in real implementation)
+                        if (unread > 0) {
+                            $('.sh-badge').text(unread).show();
+                        } else {
+                            $('.sh-badge').hide();
+                        }
+                    } else {
+                        $list.html('<div style="padding:20px;text-align:center;color:#666">No notifications</div>');
+                        $('.sh-badge').hide();
+                    }
+                }
+            });
         },
 
         // Open modal
@@ -608,15 +583,19 @@
 
         // Close modal
         closeModal: function() {
-            $('.sbha-modal').removeClass('active');
+            $('.sh-modal').removeClass('active');
             $('body').css('overflow', '');
         },
 
-        // Show toast notification
-        showToast: function(type, message) {
-            var $container = $('#sbha-notifications');
-            var $toast = $('<div class="sbha-toast sbha-toast-' + type + '">' + message + '</div>');
+        // Toast notification
+        toast: function(type, msg) {
+            var $container = $('#toasts');
+            if (!$container.length) {
+                $container = $('<div id="toasts" class="sh-toasts"></div>');
+                $('body').append($container);
+            }
 
+            var $toast = $('<div class="sh-toast sh-toast-' + type + '">' + msg + '</div>');
             $container.append($toast);
 
             setTimeout(function() {
@@ -632,9 +611,9 @@
         }
     };
 
-    // Initialize on document ready
+    // Initialize
     $(document).ready(function() {
-        SBHAHub.init();
+        SwitchHub.init();
     });
 
 })(jQuery);

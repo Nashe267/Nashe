@@ -1,8 +1,8 @@
 <?php
 /**
- * Public AJAX Handler
+ * AJAX Handler Class
  *
- * Handles frontend AJAX requests
+ * All frontend AJAX operations
  *
  * @package SwitchBusinessHub
  */
@@ -13,300 +13,604 @@ if (!defined('ABSPATH')) {
 
 class SBHA_Ajax {
 
-    /**
-     * Constructor
-     */
     public function __construct() {
-        // Public (no login required)
-        add_action('wp_ajax_nopriv_sbha_analyze_query', array($this, 'analyze_query'));
-        add_action('wp_ajax_sbha_analyze_query', array($this, 'analyze_query'));
+        // Customer auth (no WordPress users)
+        add_action('wp_ajax_nopriv_sbha_register', array($this, 'register'));
+        add_action('wp_ajax_nopriv_sbha_login', array($this, 'login'));
+        add_action('wp_ajax_sbha_login', array($this, 'login'));
+        add_action('wp_ajax_sbha_logout', array($this, 'logout'));
+        add_action('wp_ajax_nopriv_sbha_logout', array($this, 'logout'));
+        add_action('wp_ajax_nopriv_sbha_reset_password', array($this, 'reset_password'));
 
-        add_action('wp_ajax_nopriv_sbha_submit_quote', array($this, 'submit_quote'));
+        // Quote/Order
         add_action('wp_ajax_sbha_submit_quote', array($this, 'submit_quote'));
+        add_action('wp_ajax_nopriv_sbha_submit_quote', array($this, 'submit_quote'));
 
-        add_action('wp_ajax_nopriv_sbha_get_service', array($this, 'get_service'));
-        add_action('wp_ajax_sbha_get_service', array($this, 'get_service'));
+        // Order tracking
+        add_action('wp_ajax_sbha_track_order', array($this, 'track_order'));
+        add_action('wp_ajax_nopriv_sbha_track_order', array($this, 'track_order'));
 
-        add_action('wp_ajax_nopriv_sbha_track_job', array($this, 'track_job'));
-        add_action('wp_ajax_sbha_track_job', array($this, 'track_job'));
+        // Customer orders
+        add_action('wp_ajax_sbha_get_my_orders', array($this, 'get_my_orders'));
+        add_action('wp_ajax_nopriv_sbha_get_my_orders', array($this, 'get_my_orders'));
 
-        add_action('wp_ajax_nopriv_sbha_get_recommendations', array($this, 'get_recommendations'));
-        add_action('wp_ajax_sbha_get_recommendations', array($this, 'get_recommendations'));
+        // Documents
+        add_action('wp_ajax_sbha_get_documents', array($this, 'get_documents'));
+        add_action('wp_ajax_nopriv_sbha_get_documents', array($this, 'get_documents'));
+
+        // Contact
+        add_action('wp_ajax_sbha_contact', array($this, 'contact'));
+        add_action('wp_ajax_nopriv_sbha_contact', array($this, 'contact'));
+
+        // Notifications
+        add_action('wp_ajax_sbha_get_notifications', array($this, 'get_notifications'));
+        add_action('wp_ajax_sbha_mark_read', array($this, 'mark_notification_read'));
+
+        // Session check
+        add_action('wp_ajax_sbha_check_session', array($this, 'check_session'));
+        add_action('wp_ajax_nopriv_sbha_check_session', array($this, 'check_session'));
+
+        // Services
+        add_action('wp_ajax_sbha_get_services', array($this, 'get_services'));
+        add_action('wp_ajax_nopriv_sbha_get_services', array($this, 'get_services'));
     }
 
     /**
-     * Analyze query using AI
+     * Register customer
      */
-    public function analyze_query() {
-        $query = isset($_POST['query']) ? sanitize_text_field($_POST['query']) : '';
-        $session_id = isset($_POST['session_id']) ? sanitize_text_field($_POST['session_id']) : null;
+    public function register() {
+        global $wpdb;
 
-        if (empty($query)) {
-            wp_send_json_error('Query is required');
+        $first_name = sanitize_text_field($_POST['first_name'] ?? '');
+        $last_name = sanitize_text_field($_POST['last_name'] ?? '');
+        $business_name = sanitize_text_field($_POST['business_name'] ?? '');
+        $email = sanitize_email($_POST['email'] ?? '');
+        $cell_number = sanitize_text_field($_POST['cell_number'] ?? '');
+        $whatsapp_number = sanitize_text_field($_POST['whatsapp_number'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        if (empty($first_name) || empty($last_name) || empty($email) || empty($cell_number) || empty($password)) {
+            wp_send_json_error('Please fill in all required fields.');
         }
 
-        $analysis = SBHA()->get_ai_engine()->analyze_query($query, $session_id);
+        if (!is_email($email)) {
+            wp_send_json_error('Please enter a valid email address.');
+        }
 
-        // Get full service details for matches
-        $services = array();
-        if (!empty($analysis['matched_services'])) {
-            foreach ($analysis['matched_services'] as $match) {
-                $service = SBHA()->get_service_catalog()->get_service($match['service_id']);
-                if ($service) {
-                    $services[] = array(
-                        'id' => $service['id'],
-                        'name' => $service['name'],
-                        'short_description' => $service['short_description'],
-                        'base_price' => $service['base_price'],
-                        'price_type' => $service['price_type'],
-                        'image_url' => $service['image_url'],
-                        'category' => $service['category'],
-                        'match_score' => $match['score']
-                    );
+        if (strlen($password) < 6) {
+            wp_send_json_error('Password must be at least 6 characters.');
+        }
+
+        $table = $wpdb->prefix . 'sbha_customers';
+        $exists = $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE email = %s", $email));
+
+        if ($exists) {
+            wp_send_json_error('Email already registered. Please login.');
+        }
+
+        $result = $wpdb->insert($table, array(
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'business_name' => $business_name,
+            'email' => $email,
+            'cell_number' => $cell_number,
+            'whatsapp_number' => $whatsapp_number ?: $cell_number,
+            'password' => password_hash($password, PASSWORD_DEFAULT),
+            'status' => 'active'
+        ));
+
+        if (!$result) {
+            wp_send_json_error('Registration failed. Please try again.');
+        }
+
+        $customer_id = $wpdb->insert_id;
+        $token = $this->create_session($customer_id);
+
+        setcookie('sbha_token', $token, time() + (30 * 24 * 60 * 60), COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true);
+
+        wp_send_json_success(array(
+            'message' => 'Account created!',
+            'customer' => array(
+                'id' => $customer_id,
+                'name' => $first_name . ' ' . $last_name,
+                'email' => $email
+            ),
+            'token' => $token
+        ));
+    }
+
+    /**
+     * Login
+     */
+    public function login() {
+        global $wpdb;
+
+        $email = sanitize_email($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        if (empty($email) || empty($password)) {
+            wp_send_json_error('Enter email and password.');
+        }
+
+        $table = $wpdb->prefix . 'sbha_customers';
+        $customer = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table WHERE email = %s AND status = 'active'", $email
+        ), ARRAY_A);
+
+        if (!$customer || !password_verify($password, $customer['password'])) {
+            wp_send_json_error('Invalid email or password.');
+        }
+
+        $wpdb->update($table, array('last_login' => current_time('mysql')), array('id' => $customer['id']));
+
+        $token = $this->create_session($customer['id']);
+        setcookie('sbha_token', $token, time() + (30 * 24 * 60 * 60), COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true);
+
+        wp_send_json_success(array(
+            'message' => 'Welcome back!',
+            'customer' => array(
+                'id' => $customer['id'],
+                'name' => $customer['first_name'] . ' ' . $customer['last_name'],
+                'email' => $customer['email']
+            ),
+            'token' => $token
+        ));
+    }
+
+    /**
+     * Logout
+     */
+    public function logout() {
+        global $wpdb;
+        $token = $_COOKIE['sbha_token'] ?? '';
+        if ($token) {
+            $wpdb->delete($wpdb->prefix . 'sbha_sessions', array('session_token' => $token));
+        }
+        setcookie('sbha_token', '', time() - 3600, COOKIEPATH, COOKIE_DOMAIN, is_ssl(), true);
+        wp_send_json_success(array('message' => 'Logged out.'));
+    }
+
+    /**
+     * Reset password (just email + new password)
+     */
+    public function reset_password() {
+        global $wpdb;
+
+        $email = sanitize_email($_POST['email'] ?? '');
+        $new_password = $_POST['new_password'] ?? '';
+
+        if (empty($email) || empty($new_password)) {
+            wp_send_json_error('Enter email and new password.');
+        }
+
+        if (strlen($new_password) < 6) {
+            wp_send_json_error('Password must be at least 6 characters.');
+        }
+
+        $table = $wpdb->prefix . 'sbha_customers';
+        $customer = $wpdb->get_row($wpdb->prepare("SELECT id FROM $table WHERE email = %s", $email));
+
+        if (!$customer) {
+            wp_send_json_error('Email not found.');
+        }
+
+        $wpdb->update($table, array('password' => password_hash($new_password, PASSWORD_DEFAULT)), array('id' => $customer->id));
+
+        wp_send_json_success(array('message' => 'Password updated! You can now login.'));
+    }
+
+    /**
+     * Submit quote/order
+     */
+    public function submit_quote() {
+        global $wpdb;
+
+        $customer_id = $this->get_customer_id();
+
+        // Create customer from form if not logged in
+        if (!$customer_id) {
+            $email = sanitize_email($_POST['customer_email'] ?? '');
+            $name = sanitize_text_field($_POST['customer_name'] ?? '');
+            $phone = sanitize_text_field($_POST['customer_phone'] ?? '');
+
+            if (empty($email) || empty($name) || empty($phone)) {
+                wp_send_json_error('Please fill in your details.');
+            }
+
+            $table = $wpdb->prefix . 'sbha_customers';
+            $existing = $wpdb->get_row($wpdb->prepare("SELECT id FROM $table WHERE email = %s", $email));
+
+            if ($existing) {
+                $customer_id = $existing->id;
+            } else {
+                $parts = explode(' ', $name, 2);
+                $wpdb->insert($table, array(
+                    'first_name' => $parts[0],
+                    'last_name' => $parts[1] ?? '',
+                    'email' => $email,
+                    'cell_number' => $phone,
+                    'whatsapp_number' => $phone,
+                    'password' => password_hash(wp_generate_password(12), PASSWORD_DEFAULT),
+                    'status' => 'active'
+                ));
+                $customer_id = $wpdb->insert_id;
+            }
+        }
+
+        $service_id = intval($_POST['service_type'] ?? 0);
+        $custom_service = sanitize_text_field($_POST['custom_service'] ?? '');
+        $description = sanitize_textarea_field($_POST['description'] ?? '');
+        $quantity = max(1, intval($_POST['quantity'] ?? 1));
+        $urgency = sanitize_text_field($_POST['urgency'] ?? 'standard');
+        $title = sanitize_text_field($_POST['project_title'] ?? '');
+
+        if (!$service_id && empty($custom_service) && empty($title)) {
+            wp_send_json_error('Please select a service or describe your request.');
+        }
+
+        $service_name = $custom_service ?: 'Custom Request';
+        $unit_price = 0;
+
+        if ($service_id) {
+            $service = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}sbha_services WHERE id = %d", $service_id
+            ));
+            if ($service) {
+                $unit_price = floatval($service->base_price);
+                $service_name = $service->name;
+            }
+        }
+
+        $mult = $urgency === 'express' ? 1.25 : ($urgency === 'rush' ? 1.5 : 1);
+        $total = $unit_price * $quantity * $mult;
+
+        // Generate order number
+        $prefix = get_option('sbha_order_prefix', 'SWH');
+        $year = date('Y');
+        $count = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}sbha_orders") + 1;
+        $order_number = $prefix . '-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+
+        // Handle files
+        $files = array();
+        if (!empty($_FILES['files'])) {
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/media.php');
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+
+            $uploaded = $_FILES['files'];
+            $count = is_array($uploaded['name']) ? count($uploaded['name']) : 1;
+
+            for ($i = 0; $i < $count; $i++) {
+                $file = is_array($uploaded['name']) ? array(
+                    'name' => $uploaded['name'][$i],
+                    'type' => $uploaded['type'][$i],
+                    'tmp_name' => $uploaded['tmp_name'][$i],
+                    'error' => $uploaded['error'][$i],
+                    'size' => $uploaded['size'][$i]
+                ) : $uploaded;
+
+                if ($file['error'] === UPLOAD_ERR_OK) {
+                    $_FILES['upload'] = $file;
+                    $att_id = media_handle_upload('upload', 0);
+                    if (!is_wp_error($att_id)) {
+                        $files[] = array('id' => $att_id, 'url' => wp_get_attachment_url($att_id), 'name' => $file['name']);
+                    }
                 }
             }
         }
 
-        wp_send_json_success(array(
-            'intent' => $analysis['intent'],
-            'services' => $services,
-            'sentiment' => $analysis['sentiment'],
-            'suggestions' => $analysis['suggestions'],
-            'message' => $this->get_response_message($analysis, $services)
-        ));
-    }
-
-    /**
-     * Get response message based on analysis
-     */
-    private function get_response_message($analysis, $services) {
-        if (empty($services)) {
-            return "I couldn't find an exact match, but our team can help! Please describe what you need and we'll get back to you with a custom quote.";
-        }
-
-        $count = count($services);
-
-        if ($analysis['sentiment']['urgent']) {
-            return "I understand this is urgent! Here " . ($count === 1 ? "is a service" : "are " . $count . " services") . " that match your needs. We offer rush delivery options.";
-        }
-
-        switch ($analysis['intent']) {
-            case 'inquiry':
-                return "Great question! Here " . ($count === 1 ? "is our service" : "are " . $count . " services") . " that match what you're looking for. Click any service for detailed pricing.";
-
-            case 'bulk':
-                return "We offer great bulk discounts! Here " . ($count === 1 ? "is a service" : "are " . $count . " services") . " for you. Request a quote for volume pricing.";
-
-            default:
-                return "I found " . $count . " " . ($count === 1 ? "service" : "services") . " that match your request:";
-        }
-    }
-
-    /**
-     * Submit quote request
-     */
-    public function submit_quote() {
-        $nonce = isset($_POST['nonce']) ? $_POST['nonce'] : '';
-
-        // Validate required fields
-        $required = array('email', 'service_id', 'title', 'description');
-        foreach ($required as $field) {
-            if (empty($_POST[$field])) {
-                wp_send_json_error(ucfirst(str_replace('_', ' ', $field)) . ' is required');
-            }
-        }
-
-        $email = sanitize_email($_POST['email']);
-        if (!is_email($email)) {
-            wp_send_json_error('Please enter a valid email address');
-        }
-
-        // Get or create customer
-        $customer_id = SBHA_Customer::get_or_create($email, array(
-            'first_name' => isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '',
-            'phone' => isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '',
-            'company' => isset($_POST['company']) ? sanitize_text_field($_POST['company']) : ''
-        ));
-
-        if (is_wp_error($customer_id)) {
-            wp_send_json_error($customer_id->get_error_message());
-        }
-
-        // Create job
-        $job_id = SBHA()->get_job_manager()->create_job(array(
+        $wpdb->insert($wpdb->prefix . 'sbha_orders', array(
+            'order_number' => $order_number,
             'customer_id' => $customer_id,
-            'service_id' => intval($_POST['service_id']),
-            'package_id' => isset($_POST['package_id']) ? intval($_POST['package_id']) : null,
-            'title' => sanitize_text_field($_POST['title']),
-            'description' => sanitize_textarea_field($_POST['description']),
-            'quantity' => isset($_POST['quantity']) ? intval($_POST['quantity']) : 1,
-            'job_status' => 'inquiry'
+            'service_id' => $service_id ?: null,
+            'custom_service' => $custom_service,
+            'title' => $title ?: $service_name,
+            'description' => $description,
+            'quantity' => $quantity,
+            'urgency' => $urgency,
+            'unit_price' => $unit_price,
+            'total' => $total,
+            'files' => json_encode($files),
+            'status' => 'pending'
         ));
 
-        if (!$job_id) {
-            wp_send_json_error('Failed to create request. Please try again.');
+        $order_id = $wpdb->insert_id;
+
+        // Notify
+        $this->notify($customer_id, 'order', 'Request Submitted', "Your request #{$order_number} is received!");
+
+        // Email admin
+        $customer = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sbha_customers WHERE id = %d", $customer_id));
+        $admin_email = get_option('sbha_business_email', get_option('admin_email'));
+
+        wp_mail($admin_email, "New Order: {$order_number}",
+            "Order: {$order_number}\nCustomer: {$customer->first_name} {$customer->last_name}\n" .
+            "Email: {$customer->email}\nPhone: {$customer->cell_number}\n" .
+            "Service: {$service_name}\nTotal: R" . number_format($total, 2)
+        );
+
+        wp_send_json_success(array(
+            'message' => 'Request submitted!',
+            'order_number' => $order_number,
+            'total' => 'R' . number_format($total, 2)
+        ));
+    }
+
+    /**
+     * Track order
+     */
+    public function track_order() {
+        global $wpdb;
+
+        $query = sanitize_text_field($_POST['query'] ?? '');
+        if (empty($query)) {
+            wp_send_json_error('Enter order number or email.');
         }
 
-        $job = SBHA()->get_job_manager()->get_job($job_id);
+        $is_email = strpos($query, '@') !== false;
 
-        // Mark intention as converted
-        $session_id = isset($_POST['session_id']) ? sanitize_text_field($_POST['session_id']) : '';
-        if ($session_id) {
-            global $wpdb;
-            $wpdb->update(
-                SBHA_Database::get_table('ai_customer_intentions'),
-                array('converted' => 1, 'conversion_value' => $job['total']),
-                array('session_id' => $session_id),
-                array('%d', '%f'),
-                array('%s')
+        if ($is_email) {
+            $orders = $wpdb->get_results($wpdb->prepare("
+                SELECT o.*, c.first_name, c.last_name, s.name as service_name
+                FROM {$wpdb->prefix}sbha_orders o
+                JOIN {$wpdb->prefix}sbha_customers c ON o.customer_id = c.id
+                LEFT JOIN {$wpdb->prefix}sbha_services s ON o.service_id = s.id
+                WHERE c.email = %s ORDER BY o.created_at DESC LIMIT 10
+            ", $query), ARRAY_A);
+        } else {
+            $orders = $wpdb->get_results($wpdb->prepare("
+                SELECT o.*, c.first_name, c.last_name, s.name as service_name
+                FROM {$wpdb->prefix}sbha_orders o
+                JOIN {$wpdb->prefix}sbha_customers c ON o.customer_id = c.id
+                LEFT JOIN {$wpdb->prefix}sbha_services s ON o.service_id = s.id
+                WHERE o.order_number = %s
+            ", $query), ARRAY_A);
+        }
+
+        $result = array();
+        $biz = get_option('sbha_business_name', 'Switch Hub');
+
+        foreach ($orders as $o) {
+            // Mark response as viewed
+            if ($o['admin_response'] && !$o['customer_viewed_response']) {
+                $wpdb->update($wpdb->prefix . 'sbha_orders', array('customer_viewed_response' => 1), array('id' => $o['id']));
+            }
+
+            $result[] = array(
+                'order_number' => $o['order_number'],
+                'service_name' => $o['service_name'] ?: $o['custom_service'] ?: $o['title'],
+                'status' => $o['status'],
+                'status_label' => ucfirst(str_replace('_', ' ', $o['status'])),
+                'total' => 'R' . number_format($o['total'], 2),
+                'created_date' => date('d M Y', strtotime($o['created_at'])),
+                'estimated_completion' => $o['estimated_completion'] ? date('d M Y', strtotime($o['estimated_completion'])) : null,
+                'admin_response' => $o['admin_response'],
+                'has_new_response' => $o['admin_response'] && !$o['customer_viewed_response'],
+                'invoice_url' => $o['invoice_pdf_url'],
+                'quote_url' => $o['quote_pdf_url'],
+                'business_name' => $biz
             );
         }
 
-        // Send notification
-        $this->send_new_inquiry_notification($job, $customer_id);
+        wp_send_json_success(array('orders' => $result));
+    }
 
-        wp_send_json_success(array(
-            'job_number' => $job['job_number'],
-            'message' => 'Thank you! Your request has been submitted. We will get back to you within 24 hours.'
+    /**
+     * Get customer's orders
+     */
+    public function get_my_orders() {
+        global $wpdb;
+
+        $customer_id = $this->get_customer_id();
+        if (!$customer_id) {
+            wp_send_json_success(array('orders' => array()));
+        }
+
+        $orders = $wpdb->get_results($wpdb->prepare("
+            SELECT o.*, s.name as service_name
+            FROM {$wpdb->prefix}sbha_orders o
+            LEFT JOIN {$wpdb->prefix}sbha_services s ON o.service_id = s.id
+            WHERE o.customer_id = %d ORDER BY o.created_at DESC LIMIT 20
+        ", $customer_id), ARRAY_A);
+
+        $result = array();
+        $biz = get_option('sbha_business_name', 'Switch Hub');
+
+        foreach ($orders as $o) {
+            $result[] = array(
+                'order_number' => $o['order_number'],
+                'service_name' => $o['service_name'] ?: $o['custom_service'] ?: $o['title'],
+                'status' => $o['status'],
+                'status_label' => ucfirst(str_replace('_', ' ', $o['status'])),
+                'total' => 'R' . number_format($o['total'], 2),
+                'created_date' => date('d M Y', strtotime($o['created_at'])),
+                'admin_response' => $o['admin_response'],
+                'has_new_response' => $o['admin_response'] && !$o['customer_viewed_response'],
+                'invoice_url' => $o['invoice_pdf_url'],
+                'business_name' => $biz
+            );
+        }
+
+        wp_send_json_success(array('orders' => $result));
+    }
+
+    /**
+     * Get documents
+     */
+    public function get_documents() {
+        global $wpdb;
+
+        $email = sanitize_email($_POST['email'] ?? '');
+        $customer_id = $this->get_customer_id();
+
+        if (!$customer_id && $email) {
+            $c = $wpdb->get_row($wpdb->prepare("SELECT id FROM {$wpdb->prefix}sbha_customers WHERE email = %s", $email));
+            $customer_id = $c ? $c->id : null;
+        }
+
+        if (!$customer_id) {
+            wp_send_json_success(array('documents' => array()));
+        }
+
+        $quotes = $wpdb->get_results($wpdb->prepare("
+            SELECT q.*, o.title as service FROM {$wpdb->prefix}sbha_quotes q
+            JOIN {$wpdb->prefix}sbha_orders o ON q.order_id = o.id
+            WHERE q.customer_id = %d ORDER BY q.created_at DESC
+        ", $customer_id), ARRAY_A);
+
+        $invoices = $wpdb->get_results($wpdb->prepare("
+            SELECT i.*, o.title as service FROM {$wpdb->prefix}sbha_invoices i
+            JOIN {$wpdb->prefix}sbha_orders o ON i.order_id = o.id
+            WHERE i.customer_id = %d ORDER BY i.created_at DESC
+        ", $customer_id), ARRAY_A);
+
+        $docs = array();
+        foreach ($quotes as $q) {
+            $docs[] = array('type' => 'Quote', 'number' => $q['quote_number'], 'service' => $q['service'],
+                'total' => 'R' . number_format($q['total'], 2), 'date' => date('d M Y', strtotime($q['created_at'])),
+                'status' => $q['status'], 'pdf_url' => $q['pdf_url']);
+        }
+        foreach ($invoices as $i) {
+            $docs[] = array('type' => 'Invoice', 'number' => $i['invoice_number'], 'service' => $i['service'],
+                'total' => 'R' . number_format($i['total'], 2), 'date' => date('d M Y', strtotime($i['created_at'])),
+                'status' => $i['status'], 'pdf_url' => $i['pdf_url']);
+        }
+
+        wp_send_json_success(array('documents' => $docs));
+    }
+
+    /**
+     * Contact
+     */
+    public function contact() {
+        global $wpdb;
+
+        $name = sanitize_text_field($_POST['name'] ?? '');
+        $email = sanitize_email($_POST['email'] ?? '');
+        $phone = sanitize_text_field($_POST['phone'] ?? '');
+        $message = sanitize_textarea_field($_POST['message'] ?? '');
+
+        if (empty($name) || empty($email) || empty($message)) {
+            wp_send_json_error('Fill in all required fields.');
+        }
+
+        $wpdb->insert($wpdb->prefix . 'sbha_messages', array(
+            'customer_id' => $this->get_customer_id(),
+            'name' => $name, 'email' => $email, 'phone' => $phone, 'message' => $message
         ));
+
+        wp_mail(get_option('sbha_business_email', get_option('admin_email')),
+            "Message from {$name}", "Name: {$name}\nEmail: {$email}\nPhone: {$phone}\n\n{$message}",
+            array("Reply-To: {$email}"));
+
+        wp_send_json_success(array('message' => 'Message sent!'));
     }
 
     /**
-     * Send new inquiry notification
+     * Get notifications
      */
-    private function send_new_inquiry_notification($job, $customer_id) {
-        if (!get_option('sbha_email_notifications', 1)) {
-            return;
-        }
+    public function get_notifications() {
+        global $wpdb;
+        $customer_id = $this->get_customer_id();
+        if (!$customer_id) wp_send_json_success(array('notifications' => array(), 'unread' => 0));
 
-        $customer = SBHA_Customer::get_customer($customer_id);
-        $service = $job['service_id'] ? SBHA()->get_service_catalog()->get_service($job['service_id']) : null;
+        $notifs = $wpdb->get_results($wpdb->prepare("
+            SELECT * FROM {$wpdb->prefix}sbha_notifications
+            WHERE customer_id = %d ORDER BY created_at DESC LIMIT 20
+        ", $customer_id), ARRAY_A);
 
-        $to = get_option('sbha_notification_email', get_option('admin_email'));
-        $subject = sprintf('[%s] New Inquiry: %s', get_option('sbha_business_name'), $job['job_number']);
+        $unread = $wpdb->get_var($wpdb->prepare("
+            SELECT COUNT(*) FROM {$wpdb->prefix}sbha_notifications WHERE customer_id = %d AND is_read = 0
+        ", $customer_id));
 
-        $message = sprintf(
-            "New inquiry received!\n\n" .
-            "Job Number: %s\n" .
-            "Title: %s\n" .
-            "Service: %s\n\n" .
-            "Customer: %s\n" .
-            "Email: %s\n" .
-            "Phone: %s\n\n" .
-            "Description:\n%s\n\n" .
-            "View in admin: %s",
-            $job['job_number'],
-            $job['title'],
-            $service ? $service['name'] : 'N/A',
-            SBHA_Customer::get_display_name($customer),
-            $customer['email'],
-            $customer['phone'] ?: 'N/A',
-            $job['description'],
-            admin_url('admin.php?page=sbha-jobs&action=view&id=' . $job['id'])
-        );
-
-        wp_mail($to, $subject, $message);
+        wp_send_json_success(array('notifications' => $notifs, 'unread' => intval($unread)));
     }
 
     /**
-     * Get service details
+     * Mark notification read
      */
-    public function get_service() {
-        $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    public function mark_notification_read() {
+        global $wpdb;
+        $id = intval($_POST['id'] ?? 0);
+        $customer_id = $this->get_customer_id();
+        if ($id && $customer_id) {
+            $wpdb->update($wpdb->prefix . 'sbha_notifications', array('is_read' => 1),
+                array('id' => $id, 'customer_id' => $customer_id));
+        }
+        wp_send_json_success();
+    }
 
-        if (!$id) {
-            wp_send_json_error('Invalid service ID');
+    /**
+     * Check session
+     */
+    public function check_session() {
+        $customer = $this->get_customer();
+        if ($customer) {
+            wp_send_json_success(array('logged_in' => true, 'customer' => array(
+                'id' => $customer['id'],
+                'name' => $customer['first_name'] . ' ' . $customer['last_name'],
+                'email' => $customer['email']
+            )));
+        }
+        wp_send_json_success(array('logged_in' => false));
+    }
+
+    /**
+     * Get services
+     */
+    public function get_services() {
+        global $wpdb;
+        $category = sanitize_text_field($_POST['category'] ?? 'all');
+
+        $where = "status = 'active'";
+        if ($category !== 'all') {
+            $where .= $wpdb->prepare(" AND category = %s", $category);
         }
 
-        $service = SBHA()->get_service_catalog()->get_service($id);
+        $services = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}sbha_services WHERE {$where} ORDER BY display_order ASC");
+        wp_send_json_success(array('services' => $services));
+    }
 
-        if (!$service) {
-            wp_send_json_error('Service not found');
-        }
-
-        // Get recommendations
-        $recommendations = SBHA()->get_recommendations()->get_service_recommendations($id, 3);
-
-        // Track service view
-        $session_id = isset($_POST['session_id']) ? sanitize_text_field($_POST['session_id']) : '';
-        if ($session_id) {
-            SBHA_Database::insert('ai_conversion_funnel', array(
-                'session_id' => $session_id,
-                'funnel_stage' => 'service_view',
-                'service_id' => $id
-            ));
-        }
-
-        // Increment popularity
-        SBHA()->get_service_catalog()->increment_popularity($id);
-
-        wp_send_json_success(array(
-            'service' => $service,
-            'recommendations' => array_map(function($rec) {
-                return array(
-                    'id' => $rec['id'],
-                    'name' => $rec['name'],
-                    'base_price' => $rec['base_price'],
-                    'image_url' => $rec['image_url'],
-                    'reason' => $rec['reason'] ?? ''
-                );
-            }, $recommendations),
-            'currency' => get_option('sbha_currency_symbol', '$')
+    // Helpers
+    private function create_session($customer_id) {
+        global $wpdb;
+        $token = bin2hex(random_bytes(32));
+        $wpdb->insert($wpdb->prefix . 'sbha_sessions', array(
+            'customer_id' => $customer_id,
+            'session_token' => $token,
+            'ip_address' => $_SERVER['REMOTE_ADDR'] ?? '',
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+            'expires_at' => date('Y-m-d H:i:s', time() + 2592000)
         ));
+        return $token;
     }
 
-    /**
-     * Track job
-     */
-    public function track_job() {
-        $job_number = isset($_POST['job_number']) ? sanitize_text_field($_POST['job_number']) : '';
+    private function get_customer_id() {
+        $c = $this->get_customer();
+        return $c ? $c['id'] : null;
+    }
 
-        if (empty($job_number)) {
-            wp_send_json_error('Please enter a job number');
-        }
+    private function get_customer() {
+        global $wpdb;
+        $token = $_COOKIE['sbha_token'] ?? ($_POST['token'] ?? '');
+        if (!$token) return null;
 
-        $job = SBHA()->get_job_manager()->get_job_by_number($job_number);
+        $sess = $wpdb->get_row($wpdb->prepare("
+            SELECT * FROM {$wpdb->prefix}sbha_sessions WHERE session_token = %s AND expires_at > NOW()
+        ", $token), ARRAY_A);
+        if (!$sess) return null;
 
-        if (!$job) {
-            wp_send_json_error('Job not found. Please check the job number and try again.');
-        }
+        return $wpdb->get_row($wpdb->prepare("
+            SELECT * FROM {$wpdb->prefix}sbha_customers WHERE id = %d AND status = 'active'
+        ", $sess['customer_id']), ARRAY_A);
+    }
 
-        $statuses = SBHA()->get_job_manager()->get_statuses();
-
-        wp_send_json_success(array(
-            'job_number' => $job['job_number'],
-            'title' => $job['title'],
-            'status' => $job['job_status'],
-            'status_label' => $statuses[$job['job_status']],
-            'estimated_completion' => $job['estimated_completion'] ? date('F j, Y', strtotime($job['estimated_completion'])) : null,
-            'created_at' => date('F j, Y', strtotime($job['created_at'])),
-            'timeline' => array_map(function($entry) {
-                return array(
-                    'action' => $entry['description'],
-                    'date' => date('M j, g:i a', strtotime($entry['created_at']))
-                );
-            }, array_slice($job['timeline'], 0, 5))
+    private function notify($customer_id, $type, $title, $message, $link = '') {
+        global $wpdb;
+        $wpdb->insert($wpdb->prefix . 'sbha_notifications', array(
+            'customer_id' => $customer_id, 'type' => $type, 'title' => $title, 'message' => $message, 'link' => $link
         ));
-    }
-
-    /**
-     * Get recommendations
-     */
-    public function get_recommendations() {
-        $service_id = isset($_POST['service_id']) ? intval($_POST['service_id']) : 0;
-        $customer_id = isset($_POST['customer_id']) ? intval($_POST['customer_id']) : 0;
-
-        if ($service_id) {
-            $recommendations = SBHA()->get_recommendations()->get_service_recommendations($service_id);
-        } elseif ($customer_id) {
-            $recommendations = SBHA()->get_recommendations()->get_customer_recommendations($customer_id);
-        } else {
-            $recommendations = SBHA()->get_recommendations()->get_homepage_recommendations();
-        }
-
-        wp_send_json_success($recommendations);
     }
 }
 
-// Initialize
 new SBHA_Ajax();
