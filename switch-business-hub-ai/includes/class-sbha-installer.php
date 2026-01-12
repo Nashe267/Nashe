@@ -98,6 +98,11 @@ class SBHA_Installer {
             urgency enum('standard','express','rush') DEFAULT 'standard',
             unit_price decimal(10,2) DEFAULT 0.00,
             total decimal(10,2) DEFAULT 0.00,
+            client_budget decimal(10,2) DEFAULT NULL,
+            budget_notes text,
+            quote_status enum('pending','approved','declined') DEFAULT 'pending',
+            quote_response_note text,
+            quote_responded_at datetime DEFAULT NULL,
             files longtext,
             status enum('pending','quoted','confirmed','in_progress','completed','delivered','cancelled') DEFAULT 'pending',
             admin_response text,
@@ -248,6 +253,7 @@ class SBHA_Installer {
             'sbha_invoice_prefix' => 'INV',
             'sbha_primary_color' => '#FF6600',
             'sbha_secondary_color' => '#1a1a2e',
+            'sbha_gemini_api_key' => 'AIzaSyChTdziId-W_YX_WV9FL7K5GxXM3vwoCDE',
         );
 
         foreach ($defaults as $key => $value) {

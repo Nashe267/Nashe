@@ -53,6 +53,14 @@ class SBHA_Ajax {
         // Services
         add_action('wp_ajax_sbha_get_services', array($this, 'get_services'));
         add_action('wp_ajax_nopriv_sbha_get_services', array($this, 'get_services'));
+
+        // Admin: Approve/Decline quotes
+        add_action('wp_ajax_sbha_approve_quote', array($this, 'approve_quote'));
+        add_action('wp_ajax_sbha_decline_quote', array($this, 'decline_quote'));
+
+        // AI Chat with Gemini
+        add_action('wp_ajax_sbha_ai_chat', array($this, 'ai_chat'));
+        add_action('wp_ajax_nopriv_sbha_ai_chat', array($this, 'ai_chat'));
     }
 
     /**
@@ -243,6 +251,8 @@ class SBHA_Ajax {
         $quantity = max(1, intval($_POST['quantity'] ?? 1));
         $urgency = sanitize_text_field($_POST['urgency'] ?? 'standard');
         $title = sanitize_text_field($_POST['project_title'] ?? '');
+        $client_budget = !empty($_POST['client_budget']) ? floatval($_POST['client_budget']) : null;
+        $budget_notes = sanitize_textarea_field($_POST['budget_notes'] ?? '');
 
         if (!$service_id && empty($custom_service) && empty($title)) {
             wp_send_json_error('Please select a service or describe your request.');
@@ -310,8 +320,11 @@ class SBHA_Ajax {
             'urgency' => $urgency,
             'unit_price' => $unit_price,
             'total' => $total,
+            'client_budget' => $client_budget,
+            'budget_notes' => $budget_notes,
             'files' => json_encode($files),
-            'status' => 'pending'
+            'status' => 'pending',
+            'quote_status' => 'pending'
         ));
 
         $order_id = $wpdb->insert_id;
@@ -323,10 +336,14 @@ class SBHA_Ajax {
         $customer = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sbha_customers WHERE id = %d", $customer_id));
         $admin_email = get_option('sbha_business_email', get_option('admin_email'));
 
+        $budget_info = $client_budget ? "\nClient Budget: R" . number_format($client_budget, 2) : '';
+        $budget_info .= $budget_notes ? "\nBudget Notes: {$budget_notes}" : '';
+
         wp_mail($admin_email, "New Order: {$order_number}",
             "Order: {$order_number}\nCustomer: {$customer->first_name} {$customer->last_name}\n" .
             "Email: {$customer->email}\nPhone: {$customer->cell_number}\n" .
-            "Service: {$service_name}\nTotal: R" . number_format($total, 2)
+            "Service: {$service_name}\nOur Quote: R" . number_format($total, 2) . $budget_info .
+            "\n\nPlease review and approve/decline in admin panel."
         );
 
         wp_send_json_success(array(
@@ -376,12 +393,22 @@ class SBHA_Ajax {
                 $wpdb->update($wpdb->prefix . 'sbha_orders', array('customer_viewed_response' => 1), array('id' => $o['id']));
             }
 
+            $quote_status_labels = array(
+                'pending' => 'Awaiting Review',
+                'approved' => 'Approved',
+                'declined' => 'Declined'
+            );
+
             $result[] = array(
                 'order_number' => $o['order_number'],
                 'service_name' => $o['service_name'] ?: $o['custom_service'] ?: $o['title'],
                 'status' => $o['status'],
                 'status_label' => ucfirst(str_replace('_', ' ', $o['status'])),
+                'quote_status' => $o['quote_status'] ?? 'pending',
+                'quote_status_label' => $quote_status_labels[$o['quote_status'] ?? 'pending'],
+                'quote_response_note' => $o['quote_response_note'] ?? '',
                 'total' => 'R' . number_format($o['total'], 2),
+                'client_budget' => $o['client_budget'] ? 'R' . number_format($o['client_budget'], 2) : null,
                 'created_date' => date('d M Y', strtotime($o['created_at'])),
                 'estimated_completion' => $o['estimated_completion'] ? date('d M Y', strtotime($o['estimated_completion'])) : null,
                 'admin_response' => $o['admin_response'],
@@ -610,6 +637,217 @@ class SBHA_Ajax {
         $wpdb->insert($wpdb->prefix . 'sbha_notifications', array(
             'customer_id' => $customer_id, 'type' => $type, 'title' => $title, 'message' => $message, 'link' => $link
         ));
+    }
+
+    /**
+     * Approve quote (Admin only)
+     */
+    public function approve_quote() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        global $wpdb;
+        $order_id = intval($_POST['order_id'] ?? 0);
+        $note = sanitize_textarea_field($_POST['note'] ?? '');
+
+        if (!$order_id) {
+            wp_send_json_error('Invalid order.');
+        }
+
+        $order = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sbha_orders WHERE id = %d", $order_id), ARRAY_A);
+        if (!$order) {
+            wp_send_json_error('Order not found.');
+        }
+
+        $wpdb->update($wpdb->prefix . 'sbha_orders', array(
+            'quote_status' => 'approved',
+            'quote_response_note' => $note,
+            'quote_responded_at' => current_time('mysql'),
+            'status' => 'confirmed'
+        ), array('id' => $order_id));
+
+        // Notify customer
+        $this->notify(
+            $order['customer_id'],
+            'quote_approved',
+            'Quote Approved!',
+            "Great news! Your quote #{$order['order_number']} has been approved." . ($note ? " Note: {$note}" : '')
+        );
+
+        // Email customer
+        $customer = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sbha_customers WHERE id = %d", $order['customer_id']));
+        if ($customer) {
+            $biz = get_option('sbha_business_name', 'Switch Hub');
+            wp_mail($customer->email, "Quote Approved - {$order['order_number']}",
+                "Hi {$customer->first_name},\n\nGreat news! Your quote #{$order['order_number']} has been APPROVED.\n\n" .
+                ($note ? "Note from {$biz}: {$note}\n\n" : "") .
+                "We will begin working on your order shortly.\n\nThank you!\n{$biz}"
+            );
+        }
+
+        wp_send_json_success(array('message' => 'Quote approved!'));
+    }
+
+    /**
+     * Decline quote (Admin only)
+     */
+    public function decline_quote() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
+
+        global $wpdb;
+        $order_id = intval($_POST['order_id'] ?? 0);
+        $note = sanitize_textarea_field($_POST['note'] ?? '');
+
+        if (!$order_id) {
+            wp_send_json_error('Invalid order.');
+        }
+
+        $order = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sbha_orders WHERE id = %d", $order_id), ARRAY_A);
+        if (!$order) {
+            wp_send_json_error('Order not found.');
+        }
+
+        $wpdb->update($wpdb->prefix . 'sbha_orders', array(
+            'quote_status' => 'declined',
+            'quote_response_note' => $note,
+            'quote_responded_at' => current_time('mysql'),
+            'status' => 'cancelled'
+        ), array('id' => $order_id));
+
+        // Notify customer
+        $this->notify(
+            $order['customer_id'],
+            'quote_declined',
+            'Quote Update',
+            "Your quote #{$order['order_number']} could not be approved at this time." . ($note ? " Note: {$note}" : '')
+        );
+
+        // Email customer
+        $customer = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}sbha_customers WHERE id = %d", $order['customer_id']));
+        if ($customer) {
+            $biz = get_option('sbha_business_name', 'Switch Hub');
+            wp_mail($customer->email, "Quote Update - {$order['order_number']}",
+                "Hi {$customer->first_name},\n\nWe've reviewed your quote #{$order['order_number']}.\n\n" .
+                "Unfortunately, we're unable to proceed with this request at this time.\n\n" .
+                ($note ? "Note: {$note}\n\n" : "") .
+                "Please feel free to submit a new request or contact us to discuss alternatives.\n\nThank you!\n{$biz}"
+            );
+        }
+
+        wp_send_json_success(array('message' => 'Quote declined.'));
+    }
+
+    /**
+     * AI Chat using Google Gemini
+     */
+    public function ai_chat() {
+        $message = sanitize_text_field($_POST['message'] ?? '');
+        if (empty($message)) {
+            wp_send_json_error('Please enter a message.');
+        }
+
+        $api_key = get_option('sbha_gemini_api_key', '');
+        if (empty($api_key)) {
+            // Fallback to basic responses if no API key
+            wp_send_json_success(array('response' => $this->basic_ai_response($message)));
+            return;
+        }
+
+        // Get services for context
+        global $wpdb;
+        $services = $wpdb->get_results("SELECT name, category, base_price, short_description FROM {$wpdb->prefix}sbha_services WHERE status = 'active' LIMIT 20", ARRAY_A);
+        $service_list = '';
+        foreach ($services as $s) {
+            $service_list .= "- {$s['name']} ({$s['category']}): R{$s['base_price']} - {$s['short_description']}\n";
+        }
+
+        $biz = get_option('sbha_business_name', 'Switch Hub');
+        $phone = get_option('sbha_business_phone', '');
+        $whatsapp = get_option('sbha_whatsapp', '');
+
+        $system_prompt = "You are Switch, a friendly AI assistant for {$biz}. You help customers with graphics design, printing, web services, branding, and architectural drawings. Be helpful, professional, and concise. Keep responses under 100 words.
+
+Our services:
+{$service_list}
+
+Contact: Phone: {$phone}, WhatsApp: {$whatsapp}
+
+If customers want to order, tell them to use the Quote form or click 'Get Quote' on any service. If they want to track an order, tell them to use the Track panel.";
+
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . $api_key;
+
+        $body = array(
+            'contents' => array(
+                array(
+                    'parts' => array(
+                        array('text' => $system_prompt . "\n\nCustomer: " . $message . "\n\nSwitch:")
+                    )
+                )
+            ),
+            'generationConfig' => array(
+                'temperature' => 0.7,
+                'maxOutputTokens' => 200,
+                'topP' => 0.9
+            )
+        );
+
+        $response = wp_remote_post($url, array(
+            'headers' => array('Content-Type' => 'application/json'),
+            'body' => json_encode($body),
+            'timeout' => 30
+        ));
+
+        if (is_wp_error($response)) {
+            wp_send_json_success(array('response' => $this->basic_ai_response($message)));
+            return;
+        }
+
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+
+        if (isset($body['candidates'][0]['content']['parts'][0]['text'])) {
+            $ai_response = $body['candidates'][0]['content']['parts'][0]['text'];
+            wp_send_json_success(array('response' => $ai_response));
+        } else {
+            wp_send_json_success(array('response' => $this->basic_ai_response($message)));
+        }
+    }
+
+    /**
+     * Basic AI response fallback
+     */
+    private function basic_ai_response($message) {
+        $msg = strtolower($message);
+        $biz = get_option('sbha_business_name', 'Switch Hub');
+
+        if (strpos($msg, 'track') !== false || strpos($msg, 'order') !== false || strpos($msg, 'status') !== false) {
+            return "I can help you track your order! Use the Track panel below to enter your order number or email.";
+        }
+        if (strpos($msg, 'quote') !== false || strpos($msg, 'price') !== false || strpos($msg, 'cost') !== false || strpos($msg, 'how much') !== false) {
+            return "I'd love to get you a quote! Click on the Quote tab below or click 'Get Quote' on any service you're interested in.";
+        }
+        if (strpos($msg, 'contact') !== false || strpos($msg, 'call') !== false || strpos($msg, 'phone') !== false || strpos($msg, 'whatsapp') !== false) {
+            return "You can reach us through the Contact panel. We're always happy to chat!";
+        }
+        if (strpos($msg, 'logo') !== false || strpos($msg, 'brand') !== false) {
+            return "We create stunning logos and complete brand identities! Check out our Logo Design and Brand Identity services, or get a custom quote.";
+        }
+        if (strpos($msg, 'website') !== false || strpos($msg, 'web') !== false) {
+            return "We build beautiful, modern websites! From simple landing pages to full e-commerce stores. Check our Web Services or request a quote.";
+        }
+        if (strpos($msg, 'print') !== false || strpos($msg, 'card') !== false || strpos($msg, 'flyer') !== false || strpos($msg, 'banner') !== false) {
+            return "We offer high-quality printing services including business cards, flyers, banners, and more! Browse our Printing services or get a quote.";
+        }
+        if (strpos($msg, 'architect') !== false || strpos($msg, 'building') !== false || strpos($msg, 'plan') !== false || strpos($msg, 'floor') !== false) {
+            return "We provide professional architectural drawings, floor plans, and 3D renderings. Check our Architecture services!";
+        }
+        if (strpos($msg, 'hello') !== false || strpos($msg, 'hi') !== false || strpos($msg, 'hey') !== false) {
+            return "Hello! Welcome to {$biz}! I'm Switch, your AI assistant. How can I help you today? Need a quote, want to track an order, or looking for a specific service?";
+        }
+
+        return "I'd be happy to help with that! For custom requests like yours, I recommend filling out our Quote form - just click the Quote tab below. Our team will get back to you quickly with pricing and options!";
     }
 }
 

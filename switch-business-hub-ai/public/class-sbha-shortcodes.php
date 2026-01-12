@@ -151,6 +151,18 @@ class SBHA_Shortcodes {
                                 <div class="sh-field"><label>Description *</label><textarea name="description" rows="3" required></textarea></div>
                                 <div class="sh-field"><label>Files</label><input type="file" name="files[]" multiple></div>
                             </div>
+                            <div class="sh-form-section">
+                                <h3>Your Budget (Optional)</h3>
+                                <p style="font-size:13px;color:#666;margin-bottom:15px;">Let us know your budget and we'll try to work with you</p>
+                                <div class="sh-field">
+                                    <label>My Budget / What I Can Afford (<?php echo $currency; ?>)</label>
+                                    <input type="number" name="client_budget" id="client-budget" placeholder="Enter your budget amount" min="0" step="0.01">
+                                </div>
+                                <div class="sh-field">
+                                    <label>Budget Notes</label>
+                                    <textarea name="budget_notes" rows="2" placeholder="Any notes about your budget or payment preferences..."></textarea>
+                                </div>
+                            </div>
                             <div class="sh-preview">
                                 <div class="sh-preview-row"><span>Service:</span><span id="pv-svc">-</span></div>
                                 <div class="sh-preview-row"><span>Qty:</span><span id="pv-qty">1</span></div>

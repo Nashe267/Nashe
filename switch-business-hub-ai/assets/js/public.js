@@ -191,56 +191,55 @@
             this.processAI(query);
         },
 
-        // Process AI query
+        // Process AI query using Gemini
         processAI: function(query) {
             var self = this;
             var $chat = $('#ai-chat');
-            var q = query.toLowerCase();
-            var response = '';
 
-            setTimeout(function() {
-                $chat.find('.sh-typing').remove();
+            // Call Gemini AI endpoint
+            $.ajax({
+                url: this.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'sbha_ai_chat',
+                    message: query,
+                    nonce: this.nonce
+                },
+                success: function(res) {
+                    $chat.find('.sh-typing').remove();
 
-                // Check keywords
-                if (q.includes('track') || q.includes('order') || q.includes('status')) {
-                    response = '<p>I can help you track your order! Let me open the tracking panel for you.</p>';
-                    setTimeout(function() { self.switchPanel('track'); }, 1200);
-                }
-                else if (q.includes('quote') || q.includes('price') || q.includes('cost') || q.includes('how much')) {
-                    response = '<p>I\'ll help you get a quote! Let me open the quote form.</p>';
-                    setTimeout(function() { self.switchPanel('quote'); }, 1200);
-                }
-                else if (q.includes('contact') || q.includes('call') || q.includes('phone') || q.includes('whatsapp')) {
-                    response = '<p>Here are our contact options!</p>';
-                    setTimeout(function() { self.switchPanel('contact'); }, 1200);
-                }
-                else if (q.includes('logo') || q.includes('brand')) {
-                    response = '<p>We offer professional logo design and branding services! Check out our services or get a custom quote.</p>';
-                    response += '<div class="sh-quick-btns" style="margin-top:12px"><button data-q="get quote for logo">Get Logo Quote</button></div>';
-                }
-                else if (q.includes('website') || q.includes('web')) {
-                    response = '<p>We build modern, responsive websites! From landing pages to full e-commerce solutions.</p>';
-                    response += '<div class="sh-quick-btns" style="margin-top:12px"><button data-q="get quote for website">Get Website Quote</button></div>';
-                }
-                else if (q.includes('print') || q.includes('card') || q.includes('flyer') || q.includes('banner')) {
-                    response = '<p>We offer high-quality printing services including business cards, flyers, banners, and more!</p>';
-                    response += '<div class="sh-quick-btns" style="margin-top:12px"><button data-q="get quote for printing">Get Printing Quote</button></div>';
-                }
-                else if (q.includes('architect') || q.includes('building') || q.includes('plan') || q.includes('drawing')) {
-                    response = '<p>We provide professional architectural drawings and building plans!</p>';
-                    response += '<div class="sh-quick-btns" style="margin-top:12px"><button data-q="get quote for architectural">Get Architecture Quote</button></div>';
-                }
-                else {
-                    response = '<p>I\'d be happy to help with that! For "' + self.escapeHtml(query) + '", let me get you a custom quote.</p>';
+                    var response = '';
+                    if (res.success && res.data.response) {
+                        response = '<p>' + res.data.response + '</p>';
+
+                        // Auto-navigate based on keywords
+                        var q = query.toLowerCase();
+                        if (q.includes('track') || q.includes('order status')) {
+                            setTimeout(function() { self.switchPanel('track'); }, 2000);
+                        } else if (q.includes('get quote') || q.includes('request quote')) {
+                            setTimeout(function() { self.switchPanel('quote'); }, 2000);
+                        } else if (q.includes('contact') && !q.includes('form')) {
+                            setTimeout(function() { self.switchPanel('contact'); }, 2000);
+                        }
+                    } else {
+                        response = '<p>I\'d be happy to help! Try asking about our services, requesting a quote, or tracking an order.</p>';
+                    }
+
+                    // Add quick action buttons
                     response += '<div class="sh-quick-btns" style="margin-top:12px">';
-                    response += '<button data-q="get quote">Get Custom Quote</button>';
-                    response += '<button data-q="contact">Contact Us</button>';
+                    response += '<button data-q="Get me a quote">Get Quote</button>';
+                    response += '<button data-q="Track my order">Track Order</button>';
                     response += '</div>';
-                }
 
-                $chat.append('<div class="sh-msg sh-msg-bot">' + response + '</div>');
-                $chat.scrollTop($chat[0].scrollHeight);
-            }, 1000);
+                    $chat.append('<div class="sh-msg sh-msg-bot">' + response + '</div>');
+                    $chat.scrollTop($chat[0].scrollHeight);
+                },
+                error: function() {
+                    $chat.find('.sh-typing').remove();
+                    $chat.append('<div class="sh-msg sh-msg-bot"><p>Sorry, I\'m having trouble connecting. Please try again or use the menu below.</p></div>');
+                    $chat.scrollTop($chat[0].scrollHeight);
+                }
+            });
         },
 
         // Update quote preview
@@ -347,6 +346,28 @@
             html += '</div>';
             html += '<p><strong>Service:</strong> ' + o.service_name + '</p>';
             html += '<p><strong>Date:</strong> ' + o.created_date + '</p>';
+            html += '<p><strong>Quote:</strong> ' + o.total + '</p>';
+            if (o.client_budget) {
+                html += '<p><strong>Your Budget:</strong> ' + o.client_budget + '</p>';
+            }
+
+            // Show quote status with styling
+            if (o.quote_status) {
+                var statusClass = o.quote_status === 'approved' ? 'sh-status-confirmed' :
+                                  (o.quote_status === 'declined' ? 'sh-status-cancelled' : 'sh-status-pending');
+                var statusIcon = o.quote_status === 'approved' ? '✅' :
+                                 (o.quote_status === 'declined' ? '❌' : '⏳');
+                html += '<div class="sh-quote-status" style="margin:15px 0;padding:12px;border-radius:8px;' +
+                        (o.quote_status === 'approved' ? 'background:#d1fae5;border-left:4px solid #10b981;' :
+                         (o.quote_status === 'declined' ? 'background:#fee2e2;border-left:4px solid #ef4444;' :
+                          'background:#fef3c7;border-left:4px solid #f59e0b;')) + '">';
+                html += '<strong>' + statusIcon + ' Quote Status: ' + o.quote_status_label + '</strong>';
+                if (o.quote_response_note) {
+                    html += '<p style="margin-top:8px;font-size:14px;">' + o.quote_response_note + '</p>';
+                }
+                html += '</div>';
+            }
+
             if (o.estimated_completion) {
                 html += '<p><strong>Est. Completion:</strong> ' + o.estimated_completion + '</p>';
             }

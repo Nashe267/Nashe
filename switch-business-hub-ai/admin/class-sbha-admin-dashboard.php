@@ -22,6 +22,19 @@ class SBHA_Admin_Dashboard {
         $insights = SBHA_Insights::get_active_insights(5);
         $recent_jobs = SBHA()->get_job_manager()->get_jobs(array('limit' => 5));
         $gaps = SBHA_Insights::get_service_gaps(3);
+
+        // Get pending quotes from orders table
+        global $wpdb;
+        $pending_quotes = $wpdb->get_results("
+            SELECT o.*, c.first_name, c.last_name, c.email, c.cell_number, s.name as service_name
+            FROM {$wpdb->prefix}sbha_orders o
+            LEFT JOIN {$wpdb->prefix}sbha_customers c ON o.customer_id = c.id
+            LEFT JOIN {$wpdb->prefix}sbha_services s ON o.service_id = s.id
+            WHERE o.quote_status = 'pending'
+            ORDER BY o.created_at DESC
+            LIMIT 10
+        ", ARRAY_A);
+        $currency = get_option('sbha_currency_symbol', 'R');
         ?>
         <div class="wrap sbha-admin-wrap">
             <h1 class="sbha-admin-title">
@@ -71,6 +84,66 @@ class SBHA_Admin_Dashboard {
                     </div>
                 </div>
             </div>
+
+            <!-- Pending Quotes Section -->
+            <?php if (!empty($pending_quotes)): ?>
+            <div class="sbha-panel" style="margin-bottom:30px;background:#fff7ed;border-left:4px solid #FF6600;">
+                <div class="sbha-panel-header" style="background:#fff;">
+                    <h2 style="color:#FF6600;">Pending Quotes to Review (<?php echo count($pending_quotes); ?>)</h2>
+                </div>
+                <div class="sbha-panel-content">
+                    <table class="wp-list-table widefat striped">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Service</th>
+                                <th>Our Quote</th>
+                                <th>Client Budget</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($pending_quotes as $q): ?>
+                            <tr id="quote-row-<?php echo $q['id']; ?>">
+                                <td><strong><?php echo esc_html($q['order_number']); ?></strong></td>
+                                <td>
+                                    <?php echo esc_html($q['first_name'] . ' ' . $q['last_name']); ?><br>
+                                    <small><?php echo esc_html($q['email']); ?></small><br>
+                                    <small><?php echo esc_html($q['cell_number']); ?></small>
+                                </td>
+                                <td><?php echo esc_html($q['service_name'] ?: $q['custom_service'] ?: $q['title']); ?></td>
+                                <td><strong><?php echo $currency . number_format($q['total'], 2); ?></strong></td>
+                                <td>
+                                    <?php if ($q['client_budget']): ?>
+                                        <strong style="color:#059669;"><?php echo $currency . number_format($q['client_budget'], 2); ?></strong>
+                                        <?php if ($q['budget_notes']): ?>
+                                            <br><small><?php echo esc_html($q['budget_notes']); ?></small>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <span style="color:#999;">Not specified</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo date('M j, Y', strtotime($q['created_at'])); ?></td>
+                                <td>
+                                    <div class="quote-actions" style="display:flex;gap:5px;flex-wrap:wrap;">
+                                        <button type="button" class="button button-primary sbha-approve-quote" data-id="<?php echo $q['id']; ?>">Approve</button>
+                                        <button type="button" class="button sbha-decline-quote" data-id="<?php echo $q['id']; ?>">Decline</button>
+                                    </div>
+                                    <div class="quote-note-form" style="display:none;margin-top:10px;">
+                                        <textarea class="quote-note" rows="2" placeholder="Add a note (optional)" style="width:100%;"></textarea>
+                                        <button type="button" class="button button-small sbha-confirm-action" style="margin-top:5px;">Confirm</button>
+                                        <button type="button" class="button button-small sbha-cancel-action" style="margin-top:5px;">Cancel</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <div class="sbha-dashboard-grid">
                 <!-- AI Insights Panel -->
@@ -293,6 +366,76 @@ class SBHA_Admin_Dashboard {
                     }
                 });
             }
+
+            // Quote Approve/Decline
+            var pendingAction = null;
+            var pendingId = null;
+
+            $('.sbha-approve-quote').on('click', function() {
+                pendingAction = 'approve';
+                pendingId = $(this).data('id');
+                var $row = $('#quote-row-' + pendingId);
+                $row.find('.quote-actions').hide();
+                $row.find('.quote-note-form').show();
+            });
+
+            $('.sbha-decline-quote').on('click', function() {
+                pendingAction = 'decline';
+                pendingId = $(this).data('id');
+                var $row = $('#quote-row-' + pendingId);
+                $row.find('.quote-actions').hide();
+                $row.find('.quote-note-form').show();
+            });
+
+            $('.sbha-cancel-action').on('click', function() {
+                var $row = $(this).closest('tr');
+                $row.find('.quote-note-form').hide();
+                $row.find('.quote-actions').show();
+                pendingAction = null;
+                pendingId = null;
+            });
+
+            $('.sbha-confirm-action').on('click', function() {
+                if (!pendingAction || !pendingId) return;
+
+                var $row = $('#quote-row-' + pendingId);
+                var note = $row.find('.quote-note').val();
+                var action = pendingAction === 'approve' ? 'sbha_approve_quote' : 'sbha_decline_quote';
+
+                $row.find('.sbha-confirm-action').text('Processing...').prop('disabled', true);
+
+                $.ajax({
+                    url: sbhaAdmin.ajaxUrl,
+                    method: 'POST',
+                    data: {
+                        action: action,
+                        order_id: pendingId,
+                        note: note,
+                        nonce: sbhaAdmin.nonce
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $row.css('background', pendingAction === 'approve' ? '#d1fae5' : '#fee2e2');
+                            $row.find('td:last').html('<span style="color:' + (pendingAction === 'approve' ? '#059669' : '#dc2626') + ';font-weight:bold;">' + (pendingAction === 'approve' ? '✓ Approved' : '✗ Declined') + '</span>');
+                            setTimeout(function() {
+                                $row.fadeOut(500, function() { $(this).remove(); });
+                            }, 2000);
+                        } else {
+                            alert(response.data || 'Error processing request');
+                            $row.find('.quote-note-form').hide();
+                            $row.find('.quote-actions').show();
+                        }
+                    },
+                    error: function() {
+                        alert('Connection error. Please try again.');
+                        $row.find('.quote-note-form').hide();
+                        $row.find('.quote-actions').show();
+                    }
+                });
+
+                pendingAction = null;
+                pendingId = null;
+            });
 
             // Export Report
             $('.sbha-export-report').on('click', function(e) {
