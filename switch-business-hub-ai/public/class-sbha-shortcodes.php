@@ -57,11 +57,11 @@ class SBHA_Shortcodes {
                             <div class="sh-dropdown" id="user-dropdown">
                                 <a href="#" data-panel="track">My Orders</a>
                                 <a href="#" data-panel="documents">Documents</a>
-                                <a href="#" id="logout-btn">Logout</a>
+                                <a href="#" class="sh-logout" id="logout-btn">Logout</a>
                             </div>
                         </div>
                     <?php else: ?>
-                        <button class="sh-btn sh-btn-outline" id="login-btn">Login</button>
+                        <button class="sh-btn sh-btn-outline sh-login-btn" id="login-btn">Login</button>
                     <?php endif; ?>
                     <span class="sh-notif-icon" id="notif-btn">🔔<span class="sh-badge" id="notif-badge" style="display:none;">0</span></span>
                 </div>

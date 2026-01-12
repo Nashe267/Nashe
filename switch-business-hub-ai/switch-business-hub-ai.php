@@ -3,7 +3,7 @@
  * Plugin Name: Switch Business Hub AI
  * Plugin URI: https://switchbusinesshub.com
  * Description: AI-Powered Business Management for Graphics Design, Printing, Web Services, Branding & Architectural Drawings
- * Version: 1.0.0
+ * Version: 1.2.0
  * Author: Switch Business Hub
  * Author URI: https://switchbusinesshub.com
  * License: GPL v2 or later
@@ -20,11 +20,11 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin Constants
-define('SBHA_VERSION', '1.0.0');
+define('SBHA_VERSION', '1.2.0');
 define('SBHA_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SBHA_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('SBHA_PLUGIN_BASENAME', plugin_basename(__FILE__));
-define('SBHA_DB_VERSION', '1.0.0');
+define('SBHA_DB_VERSION', '1.1.0');
 
 /**
  * Main Switch Business Hub AI Class
